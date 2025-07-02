@@ -16,7 +16,7 @@ const MultiSelectDropdown: React.FC<ExtendedMultiSelectDropdownProps> = ({
   selectedOptions,
   preSelectedOptions = [],
   onApply,
-  onReset,
+  // onReset,
   onClose,
   maxHeight = 300,
   className = "",

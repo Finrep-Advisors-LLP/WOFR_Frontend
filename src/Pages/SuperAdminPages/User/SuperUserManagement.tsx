@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
-import { ChevronDown } from "lucide-react";
+import React, { useEffect, useState, useRef } from "react";
+// import { ChevronDown } from "lucide-react";
 import { useAuth } from "../../../hooks/useAuth";
 import axios from "../../../helper/axios";
 import TableHeader from "../../../component/common/ui/Table/TableHeader";
@@ -59,7 +59,7 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
   // Refs for smart positioning
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const dropdownRefs = useRef<Record<string, HTMLButtonElement>>({});
-  const [dropdownPosition, setDropdownPosition] = useState<{
+  const [dropdownPosition] = useState<{
     top?: number;
     bottom?: number;
     left: number;
@@ -85,40 +85,40 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
   axios.defaults.headers.common["accept"] = "application/json";
 
   // Calculate smart dropdown position
-  const calculateDropdownPosition = useCallback((buttonElement: HTMLButtonElement) => {
-    const buttonRect = buttonElement.getBoundingClientRect();
-    const tableContainer = tableContainerRef.current;
+  // const calculateDropdownPosition = useCallback((buttonElement: HTMLButtonElement) => {
+  //   const buttonRect = buttonElement.getBoundingClientRect();
+  //   const tableContainer = tableContainerRef.current;
     
-    if (!tableContainer) return { left: 0, openUpward: false };
+  //   if (!tableContainer) return { left: 0, openUpward: false };
     
-    const containerRect = tableContainer.getBoundingClientRect();
-    const dropdownHeight = 300; // Reduced dropdown height
-    const spaceBelow = containerRect.bottom - buttonRect.bottom;
-    const spaceAbove = buttonRect.top - containerRect.top;
+  //   const containerRect = tableContainer.getBoundingClientRect();
+  //   const dropdownHeight = 300; // Reduced dropdown height
+  //   const spaceBelow = containerRect.bottom - buttonRect.bottom;
+  //   const spaceAbove = buttonRect.top - containerRect.top;
     
-    // Calculate position relative to the table container
-    const relativeLeft = Math.max(0, Math.min(
-      buttonRect.left - containerRect.left,
-      containerRect.width - 280 // Ensure dropdown doesn't overflow
-    ));
+  //   // Calculate position relative to the table container
+  //   const relativeLeft = Math.max(0, Math.min(
+  //     buttonRect.left - containerRect.left,
+  //     containerRect.width - 280 // Ensure dropdown doesn't overflow
+  //   ));
     
-    // Determine if dropdown should open upward
-    const shouldOpenUpward = spaceBelow < dropdownHeight && spaceAbove > dropdownHeight;
+  //   // Determine if dropdown should open upward
+  //   const shouldOpenUpward = spaceBelow < dropdownHeight && spaceAbove > dropdownHeight;
     
-    if (shouldOpenUpward) {
-      return {
-        bottom: containerRect.bottom - buttonRect.top + 8,
-        left: relativeLeft,
-        openUpward: true,
-      };
-    } else {
-      return {
-        top: buttonRect.bottom - containerRect.top + 8,
-        left: relativeLeft,
-        openUpward: false,
-      };
-    }
-  }, []);
+  //   if (shouldOpenUpward) {
+  //     return {
+  //       bottom: containerRect.bottom - buttonRect.top + 8,
+  //       left: relativeLeft,
+  //       openUpward: true,
+  //     };
+  //   } else {
+  //     return {
+  //       top: buttonRect.bottom - containerRect.top + 8,
+  //       left: relativeLeft,
+  //       openUpward: false,
+  //     };
+  //   }
+  // }, []);
 
   // Close dropdown on scroll
   useEffect(() => {
@@ -247,71 +247,71 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
   };
 
   // Enhanced toggle dropdown function with smart positioning
-  const toggleDropdown = useCallback((
-    userId: string,
-    type: "roles"
-  ) => {
-    const isCurrentlyOpen = expandedDropdown?.id === userId && expandedDropdown?.type === type;
+  // const toggleDropdown = useCallback((
+  //   userId: string,
+  //   type: "roles"
+  // ) => {
+  //   const isCurrentlyOpen = expandedDropdown?.id === userId && expandedDropdown?.type === type;
     
-    if (isCurrentlyOpen) {
-      setExpandedDropdown(null);
-    } else {
-      const buttonKey = `${userId}-${type}`;
-      const buttonElement = dropdownRefs.current[buttonKey];
+  //   if (isCurrentlyOpen) {
+  //     setExpandedDropdown(null);
+  //   } else {
+  //     const buttonKey = `${userId}-${type}`;
+  //     const buttonElement = dropdownRefs.current[buttonKey];
       
-      if (buttonElement) {
-        const position = calculateDropdownPosition(buttonElement);
-        setDropdownPosition(position);
-      }
+  //     if (buttonElement) {
+  //       const position = calculateDropdownPosition(buttonElement);
+  //       setDropdownPosition(position);
+  //     }
       
-      setExpandedDropdown({ id: userId, type });
-    }
-  }, [expandedDropdown, calculateDropdownPosition]);
+  //     setExpandedDropdown({ id: userId, type });
+  //   }
+  // }, [expandedDropdown, calculateDropdownPosition]);
 
   // Enhanced function to format assigned data with dropdowns
-  const formatAssignedRolesDropdown = (userRoles: AssignedRole[], userId: string) => {
-    if (userRoles.length === 0) {
-      return (
-        <button className="inline-flex justify-between items-center w-full min-w-[140px] px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg shadow-sm text-gray-500 cursor-default">
-          <span className="text-sm">No roles assigned</span>
-        </button>
-      );
-    }
+  // const formatAssignedRolesDropdown = (userRoles: AssignedRole[], userId: string) => {
+  //   if (userRoles.length === 0) {
+  //     return (
+  //       <button className="inline-flex justify-between items-center w-full min-w-[140px] px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg shadow-sm text-gray-500 cursor-default">
+  //         <span className="text-sm">No roles assigned</span>
+  //       </button>
+  //     );
+  //   }
 
-    // Extract unique role names
-    const uniqueRoles = [...new Set(
-      userRoles.map((role) => role.screen_data?.role?.role_name || "N/A")
-    )];
+  //   // Extract unique role names
+  //   const uniqueRoles = [...new Set(
+  //     userRoles.map((role) => role.screen_data?.role?.role_name || "N/A")
+  //   )];
 
-    const buttonKey = `${userId}-roles`;
+  //   const buttonKey = `${userId}-roles`;
 
-    return (
-      <div className="relative">
-        <button
-          ref={(el) => {
-            if (el) dropdownRefs.current[buttonKey] = el;
-          }}
-          onClick={() => toggleDropdown(userId, "roles")}
-          className="inline-flex justify-between items-center w-full min-w-[140px] px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg shadow-sm text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150"
-        >
-          <span className="flex items-center">
-            <span className="text-xs font-medium mr-2 px-2 py-1 rounded-full bg-blue-100 text-blue-800">
-              {uniqueRoles.length}
-            </span>
-            <span className="text-sm">Roles</span>
-          </span>
-          <ChevronDown
-            size={16}
-            className={`ml-2 transition-transform duration-200 ${
-              expandedDropdown?.id === userId && expandedDropdown?.type === "roles"
-                ? "transform rotate-180"
-                : ""
-            }`}
-          />
-        </button>
-      </div>
-    );
-  };
+  //   return (
+  //     <div className="relative">
+  //       <button
+  //         ref={(el) => {
+  //           if (el) dropdownRefs.current[buttonKey] = el;
+  //         }}
+  //         onClick={() => toggleDropdown(userId, "roles")}
+  //         className="inline-flex justify-between items-center w-full min-w-[140px] px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg shadow-sm text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150"
+  //       >
+  //         <span className="flex items-center">
+  //           <span className="text-xs font-medium mr-2 px-2 py-1 rounded-full bg-blue-100 text-blue-800">
+  //             {uniqueRoles.length}
+  //           </span>
+  //           <span className="text-sm">Roles</span>
+  //         </span>
+  //         <ChevronDown
+  //           size={16}
+  //           className={`ml-2 transition-transform duration-200 ${
+  //             expandedDropdown?.id === userId && expandedDropdown?.type === "roles"
+  //               ? "transform rotate-180"
+  //               : ""
+  //           }`}
+  //         />
+  //       </button>
+  //     </div>
+  //   );
+  // };
 
   // Calculate total pages
   const totalPages = Math.max(1, Math.ceil(totalUsers / itemsPerPage));
@@ -371,8 +371,8 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
                     </tr>
                   ) : (
                     newUsers.map((user1, index) => {
-                      const userRoles = getUserAssignedRoles(user1.tenant_user_id || "");
-                      const userId = user1.tenant_user_id || index.toString();
+                      // const userRoles = getUserAssignedRoles(user1.tenant_user_id || "");
+                      // const userId = user1.tenant_user_id || index.toString();
 
                       return (
                         <tr

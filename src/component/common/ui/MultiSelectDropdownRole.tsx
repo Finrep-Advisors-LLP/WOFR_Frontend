@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ChevronDown, X, Check } from "lucide-react";
+import { ChevronDown,  Check } from "lucide-react";
 import { createPortal } from "react-dom";
 
 interface Option {
@@ -100,10 +100,10 @@ export const MultiSelectDropdownRole: React.FC<MultiSelectDropdownProps> = ({
     onSelectionChange(newSelected);
   };
 
-  const removeOption = (optionId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    onSelectionChange(selectedValues.filter((id) => id !== optionId));
-  };
+  // const removeOption = (optionId: string, e: React.MouseEvent) => {
+  //   e.stopPropagation();
+  //   onSelectionChange(selectedValues.filter((id) => id !== optionId));
+  // };
 
   const displayText =
     selectedValues.length > 0

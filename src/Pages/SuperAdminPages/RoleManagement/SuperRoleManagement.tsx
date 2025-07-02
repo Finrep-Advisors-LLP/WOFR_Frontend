@@ -289,17 +289,17 @@ const SuperRoleManagement: React.FC<{ isReadOnly: boolean }> = ({
   ]);
 
   // Enhanced dropdown toggle with proper attachment
-  const toggleDropdown = useCallback(
-    (id: number | string, type: "actions" | "subactions") => {
-      const dropdownId = `${id}`;
-      const newExpandedDropdown = expandedDropdown?.id === dropdownId && expandedDropdown?.type === type
-        ? null
-        : { id: dropdownId, type };
+  // const toggleDropdown = useCallback(
+  //   (id: number | string, type: "actions" | "subactions") => {
+  //     const dropdownId = `${id}`;
+  //     const newExpandedDropdown = expandedDropdown?.id === dropdownId && expandedDropdown?.type === type
+  //       ? null
+  //       : { id: dropdownId, type };
       
-      setExpandedDropdown(newExpandedDropdown);
-    },
-    [expandedDropdown]
-  );
+  //     setExpandedDropdown(newExpandedDropdown);
+  //   },
+  //   [expandedDropdown]
+  // );
 
   // Pagination handlers
   const handleMasterAdminPageChange = useCallback((page: number) => {
@@ -352,7 +352,7 @@ const SuperRoleManagement: React.FC<{ isReadOnly: boolean }> = ({
 
   // Close dropdown on outside click
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = () => {
       if (expandedDropdown) {
         setExpandedDropdown(null);
       }

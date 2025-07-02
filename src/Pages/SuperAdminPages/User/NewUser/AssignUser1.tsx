@@ -524,7 +524,7 @@ const MultiSelectDropdown = ({
               )}
               
               <div className="py-1">
-                {availableOptions.map((option, index) => {
+                {availableOptions.map((option) => {
                   const isSelected = selectedValues.includes(option.id);
                   return (
                     <button

@@ -154,7 +154,8 @@ export const userData: UserData[] = [
     user_id: undefined,
     phone_number: undefined,
     organization_name: undefined,
-    username: undefined
+    username: undefined,
+    status: "active"
   },
   {
     id: 2,
@@ -172,7 +173,8 @@ export const userData: UserData[] = [
     user_id: undefined,
     phone_number: undefined,
     organization_name: undefined,
-    username: undefined
+    username: undefined,
+    status: "active"
   },
   {
     id: 3,
@@ -190,7 +192,8 @@ export const userData: UserData[] = [
     user_id: undefined,
     phone_number: undefined,
     organization_name: undefined,
-    username: undefined
+    username: undefined,
+    status: "active"
   },
   {
     id: 4,
@@ -208,7 +211,8 @@ export const userData: UserData[] = [
     user_id: undefined,
     phone_number: undefined,
     organization_name: undefined,
-    username: undefined
+    username: undefined,
+    status: "active"
   },
   {
     id: 5,
@@ -226,7 +230,8 @@ export const userData: UserData[] = [
     user_id: undefined,
     phone_number: undefined,
     organization_name: undefined,
-    username: undefined
+    username: undefined,
+    status: "active"
   },
   {
     id: 6,
@@ -244,7 +249,8 @@ export const userData: UserData[] = [
     user_id: undefined,
     phone_number: undefined,
     organization_name: undefined,
-    username: undefined
+    username: undefined,
+    status: "active"
   },
   {
     id: 7,
@@ -262,7 +268,8 @@ export const userData: UserData[] = [
     user_id: undefined,
     phone_number: undefined,
     organization_name: undefined,
-    username: undefined
+    username: undefined,
+    status: "active"
   },
   {
     id: 8,
@@ -280,7 +287,8 @@ export const userData: UserData[] = [
     user_id: undefined,
     phone_number: undefined,
     organization_name: undefined,
-    username: undefined
+    username: undefined,
+    status: "active"
   },
   {
     id: 9,
@@ -298,7 +306,8 @@ export const userData: UserData[] = [
     user_id: undefined,
     phone_number: undefined,
     organization_name: undefined,
-    username: undefined
+    username: undefined,
+    status: "active"
   },
   {
     id: 10,
@@ -316,7 +325,8 @@ export const userData: UserData[] = [
     user_id: undefined,
     phone_number: undefined,
     organization_name: undefined,
-    username: undefined
+    username: undefined,
+    status: "active"
   },
 ];
 
