@@ -27,10 +27,10 @@ pipeline {
                 echo '🚀 Deploying to Nginx...'
 
                 // Clear existing files
-                sh 'sudo rm -rf /var/www/html/*'
+                sh 'sudo rm -rf /var/www/html/dist/*'
 
                 // Copy new build to Nginx folder
-                sh 'sudo cp -r dist/* /var/www/html/'
+                sh 'sudo cp -r dist/* /var/www/html/dist'
 
                 // Restart Nginx to apply changes
                 echo '🔄 Restarting Nginx...'
