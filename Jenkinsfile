@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        NODE_ENV = 'production'
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -15,7 +11,7 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo '📦 Installing dependencies...'
-                sh 'npm install'
+                sh 'npm ci'
             }
         }
 
