@@ -1,3 +1,5 @@
+
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
@@ -132,13 +134,13 @@ export const useLogin = (): UseLoginReturn => {
 
 
     setIsOtpVerifying(true);
-
     try {
       const response = await axios.post(`api/auth/v1/verify-login-otp`, {
         email_or_phone: email,
         otp_code: otpCode,
       });
-
+      console.log(response.data);
+      
       if (response.data) {
         if (response.data.token) {
           login(

@@ -28,6 +28,7 @@ export interface ModuleData {
 }
 
 export interface UserData {
+    status: "active" | "inactive";
   created_at: string | number | Date;
   user_id: any;
   phone_number: any;

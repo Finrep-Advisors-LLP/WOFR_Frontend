@@ -119,7 +119,7 @@ const OrganizationForm = ({
       zip_postal_code: data.zip_postal_code || null,
       incorporation_date: data.incorporation_date || null,
     };
-console.log(payload, "payload");
+
 
     try {
       await updateOrganization(payload, authState.token);

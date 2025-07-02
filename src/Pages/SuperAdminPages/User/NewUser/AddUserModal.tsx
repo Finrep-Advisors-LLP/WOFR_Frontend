@@ -121,7 +121,7 @@ const AddUserModal: React.FC<AddMultipleUsersModalProps> = ({ onClose }) => {
         email: user.email.toLowerCase().trim()
       }));
 
-      const response = await axios.post(
+      await axios.post(
         "api/v1/tenant-user",
         userData,
         {
@@ -133,7 +133,6 @@ const AddUserModal: React.FC<AddMultipleUsersModalProps> = ({ onClose }) => {
         }
       );
 
-      console.log("Users created successfully:", response.data);
       onClose();
       window.location.reload();
     } catch (error: any) {
@@ -142,8 +141,8 @@ const AddUserModal: React.FC<AddMultipleUsersModalProps> = ({ onClose }) => {
       // Enhanced error handling from API response
       let errorMessage = 'Error creating users. Please try again.';
       
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
       } else if (error.response?.data?.detail) {
         errorMessage = error.response.data.detail;
       } else if (error.message) {

@@ -29,12 +29,12 @@ import EntityMaster from "../Pages/LeaseMangement/Masters/EntityMaster";
 import LessorMaster from "../Pages/LeaseMangement/Masters/LessorMaster";
 import GlMaster from "../Pages/LeaseMangement/Masters/GlMaster";
 import AssetMaster from "../Pages/LeaseMangement/Masters/AssetMaster";
-import MasterRoleManagement from "../Pages/MasterAdmin/Roles/MasterRoleManagement";
 import SuperRoleManagement from "../Pages/SuperAdminPages/RoleManagement/SuperRoleManagement";
 import DepartmentMaster from "../Pages/LeaseMangement/Masters/DepartmentMaster";
 import Currency from "../Pages/LeaseMangement/Masters/Currency";
 import CheckerDashboard from "../Pages/LeaseMangement/Checker/CheckerDashboard";
 import MasterModulesPage from "../Pages/MasterAdmin/Modules/MasterModulesPage";
+import { MasterRoleManagement } from "../Pages/MasterAdmin/Roles/MasterRoleManagement";
 
 export interface RouteChild {
   name: string;
@@ -189,7 +189,7 @@ export const DashboardRoutes: RouteItem[] = [
     name: "Roles Controller",
     path: "role-management",
     icon: <Settings size={20} />,
-    element: <MasterRoleManagement isReadOnly={false} />,
+    element: <MasterRoleManagement  />,
     allowedRoles: ["dev", "master_admin"],
   },
   {

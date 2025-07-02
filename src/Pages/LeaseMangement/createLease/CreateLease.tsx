@@ -181,7 +181,6 @@ const CreateLease: React.FC = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      console.log("Saving form data:", formData);
       
       // Show success message
       alert("Changes saved successfully!");
@@ -193,8 +192,6 @@ const CreateLease: React.FC = () => {
   };
 
   const handleSubmit = () => {
-    // In a real app, submit form data to API
-    console.log("Submitting form data:", formData);
 
     // Simulate submission and redirect
     setTimeout(() => {

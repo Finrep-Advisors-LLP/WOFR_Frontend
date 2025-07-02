@@ -37,7 +37,6 @@ const OrganizationTable = ({
       </div>
     );
   }
-console.log(organizations, "organizations");
 
   return (
     <div>

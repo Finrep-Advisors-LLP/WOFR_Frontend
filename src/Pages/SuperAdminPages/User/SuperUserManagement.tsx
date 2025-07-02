@@ -339,9 +339,9 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
                     <TableHeader className="min-w-[160px] sm:min-w-[200px] text-xs font-semibold text-gray-700 uppercase tracking-wide">
                       Email
                     </TableHeader>
-                    <TableHeader className="min-w-[140px] sm:min-w-[180px] text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                    {/* <TableHeader className="min-w-[140px] sm:min-w-[180px] text-xs font-semibold text-gray-700 uppercase tracking-wide">
                       Assigned Roles
-                    </TableHeader>
+                    </TableHeader> */}
                     <TableHeader className="w-24 sm:w-32 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide">
                       Actions
                     </TableHeader>
@@ -406,9 +406,9 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
                               {user1.email}
                             </div>
                           </td>
-                          <td className="px-3 sm:px-6 py-3 sm:py-4">
+                          {/* <td className="px-3 sm:px-6 py-3 sm:py-4">
                             {formatAssignedRolesDropdown(userRoles, userId)}
-                          </td>
+                          </td> */}
                           <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
                             <button
                               className="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-[#008F98] text-white hover:bg-[#007a82] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-150 shadow-sm"

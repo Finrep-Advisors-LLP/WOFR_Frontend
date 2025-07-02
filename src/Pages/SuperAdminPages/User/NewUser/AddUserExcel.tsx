@@ -193,7 +193,7 @@ const AddUserExcel: React.FC<CSVUploadModalProps> = ({ onClose }) => {
         email: user.email.toLowerCase().trim()
       }));
 
-      const response = await axios.post(
+       await axios.post(
         "api/v1/tenant-user",
         userData,
         {
@@ -205,7 +205,6 @@ const AddUserExcel: React.FC<CSVUploadModalProps> = ({ onClose }) => {
         }
       );
 
-      console.log("Users created successfully:", response.data);
       setUploadStep('result');
     } catch (error: any) {
       console.error("Error creating users:", error);
