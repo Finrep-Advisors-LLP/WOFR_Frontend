@@ -1,8 +1,5 @@
-
-
-
 import React, { useState } from "react";
-import Buttons from "../../../component/common/Button/Buttons";
+import Button from "../../../component/common/ui/Button";
 
 interface CreateRoleFormProps {
   onSubmit: (roleData: {
@@ -12,16 +9,16 @@ interface CreateRoleFormProps {
   }) => Promise<void>;
   onCancel: () => void;
   isLoading: boolean;
-  title?: string; 
-  submitButtonText?: string; 
+  title?: string;
+  submitButtonText?: string;
 }
 
 const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
   onSubmit,
   onCancel,
   isLoading,
-  // title = "Create Role", 
-  submitButtonText = "Create Role", 
+  // title = "Create Role",
+  submitButtonText = "Create Role",
 }) => {
   const [formData, setFormData] = useState({
     role_name: "",
@@ -47,6 +44,23 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
     }
   };
 
+
+  const handleBlur = (e: React.FocusEvent<any>) => {
+
+  const { name, value } = e.target;
+
+  if (name === "role_name" && !value.trim()) {
+
+    setErrors((prev) => ({ ...prev, role_name: "Role name is required" }));
+
+  }
+
+  if (name === "description" && !value.trim()) {
+
+    setErrors((prev) => ({ ...prev, description: "Description is required" }));
+  }
+};
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
@@ -66,10 +80,10 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     if (!validate()) return;
-  
-    try {     
+
+    try {
       await onSubmit(formData);
       setFormData({
         role_name: "",
@@ -77,7 +91,7 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
         status: "active",
       });
       setErrors({});
-       onCancel(); 
+      onCancel();
     } catch (error) {
       console.error("Form submission error:", error);
     }
@@ -91,7 +105,7 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
             htmlFor="role_name"
             className="block text-sm font-semibold text-gray-700 mb-2"
           >
-            Role Name
+          Role Name <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -99,10 +113,12 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
             name="role_name"
             value={formData.role_name}
             onChange={handleChange}
+            required
+            onBlur={handleBlur}
             disabled={isLoading}
             className={`w-full px-4 py-3 text-sm border rounded-lg transition-all duration-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed ${
-              errors.role_name 
-                ? "border-red-300 bg-red-50" 
+              errors.role_name
+                ? "border-red-300 bg-red-50"
                 : "border-gray-300 bg-white hover:border-gray-400"
             }`}
             placeholder="Enter role name"
@@ -117,18 +133,20 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
             htmlFor="description"
             className="block text-sm font-semibold text-gray-700 mb-2"
           >
-            Description
+            Description <span className="text-red-500">*</span>
           </label>
           <textarea
             id="description"
             name="description"
             rows={4}
             value={formData.description}
+            required
             onChange={handleChange}
+              onBlur={handleBlur}
             disabled={isLoading}
             className={`w-full px-4 py-3 text-sm border rounded-lg transition-all duration-200 text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed ${
-              errors.description 
-                ? "border-red-300 bg-red-50" 
+              errors.description
+                ? "border-red-300 bg-red-50"
                 : "border-gray-300 bg-white hover:border-gray-400"
             }`}
             placeholder="Enter role description"
@@ -159,24 +177,24 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
         </div>
 
         <div className="flex flex-col-reverse sm:flex-row gap-3">
-          <Buttons 
-            type="button" 
-            variant="outline" 
+          <Button
+            type="button"
+            variant="outline"
             onClick={onCancel}
             disabled={isLoading}
             className="w-full sm:w-auto px-6 py-3 text-sm font-medium"
           >
             Cancel
-          </Buttons>
-          <Buttons 
-            type="submit" 
-            variant="success" 
+          </Button>
+          <Button
+            type="submit"
+            variant="success"
             isLoading={isLoading}
             disabled={isLoading}
             className="w-full sm:w-auto px-6 py-3 text-sm font-medium"
           >
             {submitButtonText}
-          </Buttons>
+          </Button>
         </div>
       </form>
     </div>

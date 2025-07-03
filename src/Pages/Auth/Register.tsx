@@ -1,7 +1,5 @@
 
 
-
-
 import React, { useEffect, useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import backgroundImages from "../../../public/background";
@@ -409,12 +407,12 @@ const Registration: React.FC<RegistrationProps> = () => {
                         message: "Password must be at least 8 characters long",
                       },
                       maxLength: {
-                        value: 20,
-                        message: "Password must not exceed 20 characters",
+                        value: 12,
+                        message: "Password must not exceed 12 characters",
                       },
                       pattern: {
                         value:
-                          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/,
+                          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,12}$/,
                         message:
                           "Password must contain uppercase, lowercase, number, and special character",
                       },
