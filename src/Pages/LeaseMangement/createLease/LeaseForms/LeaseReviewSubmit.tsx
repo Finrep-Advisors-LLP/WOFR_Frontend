@@ -1,6 +1,8 @@
 import React from "react";
 import { AlertCircle } from "lucide-react";
 import { LeaseFormData } from "../../../../types";
+import axios from "../../../../helper/axios";
+import { useAuth } from "../../../../context/AuthContext";
 
 interface LeaseReviewSubmitProps {
   formData: LeaseFormData;
@@ -55,6 +57,72 @@ const LeaseReviewSubmit: React.FC<LeaseReviewSubmitProps> = ({
       return { value: deptValue, label: deptValue };
     });
   };
+  const { authState } = useAuth();
+
+  const getAuthHeaders = () => ({
+    Authorization: `Bearer ${authState.token}`,
+    Accept: "application/json",
+  });
+
+
+
+const submitLeaseToAPI = async (formData:any) => {
+  const apiPayload = {
+    organization_id: "T00015", // Map from your form
+    lease_identifier: formData.propertyName || "string",
+    asset_group_id: parseInt(formData.propertyId) || 0,
+    department_id: parseInt(formData.department?.[0]) || 0, // First department if array
+    short_term_lease: formData.isShortTerm ? "yes" : "no",
+    low_value_lease: formData.isLowValue ? "yes" : "no",
+    lease_start_date: formData.startDate,
+    lease_end_date: formData.endDate,
+    lease_term_years: formData.duration?.years || 0,
+    lease_term_months: formData.duration?.months || 0,
+    lease_term_days: formData.duration?.days || 0,
+    custom_cashflows: formData.hasCashflow ? "yes" : "no",
+    monthly_lease_payment: parseFloat(formData.annualPayment) / 12 || 0, // Convert annual to monthly
+    incremental_borrowing_rate: parseFloat(formData.incrementalBorrowingRate) || 0,
+    payment_frequency: formData.paymentFrequency || "monthly",
+    payment_timing: formData.paymentTiming || "beginning",
+    payment_delay_months: parseInt(formData.paymentDelay) || 0,
+    initial_direct_costs: parseFloat(formData.initialDirectCosts) || 0,
+    termination_date: formData.endDate, // Using end date as termination date
+    status: "active"
+  };
+
+  try {
+    const response = await axios.post('api/v1/leases', apiPayload, {
+      // headers: {
+      //   'accept': 'application/json',
+      //   'Content-Type': 'application/json',
+      // }
+
+        headers: {
+            ...getAuthHeaders(),
+            "Content-Type": "application/json",
+          },
+      
+    });
+
+    return response.data;
+  } catch (error:any) {
+    console.error('Error submitting lease:', error);
+    if (error.response) {
+      // Server responded with error status
+      throw new Error(`API Error: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`);
+    } else if (error.request) {
+      // Request was made but no response received
+      throw new Error('Network error: No response from server');
+    } else {
+      // Something else happened
+      throw new Error(`Error: ${error.message}`);
+    }
+  }
+};
+
+
+
+
 
   // Check if this is multi-entity mode
   const isMultiEntityMode = formData.hasMultiEntityAllocation;
@@ -837,7 +905,7 @@ const LeaseReviewSubmit: React.FC<LeaseReviewSubmitProps> = ({
           Save
         </button>
 
-        <button
+        {/* <button
           type="button"
           onClick={onSubmit}
           disabled={!isFormValid}
@@ -848,7 +916,27 @@ const LeaseReviewSubmit: React.FC<LeaseReviewSubmitProps> = ({
           } transition-colors`}
         >
           Submit Lease
-        </button>
+        </button> */}
+        <button
+  type="button"
+  onClick={async () => {
+    try {
+      await submitLeaseToAPI(formData);
+      alert('Lease submitted successfully!');
+      onSubmit(); // Call original onSubmit if needed
+    } catch (error) {
+      alert('Error submitting lease. Please try again.');
+    }
+  }}
+  disabled={!isFormValid}
+  className={`px-4 py-2 cursor-pointer rounded-md ${
+    isFormValid
+      ? "bg-[#008F98] text-white hover:bg-[#007A82]"
+      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+  } transition-colors`}
+>
+  Submit Lease
+</button>
       </div>
     </div>
   );

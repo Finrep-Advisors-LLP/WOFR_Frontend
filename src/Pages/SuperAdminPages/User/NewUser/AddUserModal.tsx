@@ -3,6 +3,7 @@ import { User, Mail, UserPlus, X, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../../../../hooks/useAuth";
 import axios from "../../../../helper/axios";
+import toast from "react-hot-toast";
 
 interface UserData {
   name: string;
@@ -37,9 +38,10 @@ const AddUserModal: React.FC<AddMultipleUsersModalProps> = ({ onClose }) => {
   const validateUserName = (name: string): string => {
     if (!name.trim()) return "User name is required";
     if (name.length < 2) return "Name must be at least 2 characters";
-    if (name.length > 50) return "Name must be less than 50 characters";
-    if (!/^[a-zA-Z\s'-]+$/.test(name)) return "Name should contain only letters, spaces, hyphens and apostrophes";
-    return "";
+    if (name.length > 20) return "Name must be less than 50 characters";
+   if (!/^[a-zA-Z\s]+$/.test(name)) return "Name should contain only letters and spaces";
+return "";
+
   };
 
   // Check for duplicate emails within the form
@@ -74,9 +76,9 @@ const AddUserModal: React.FC<AddMultipleUsersModalProps> = ({ onClose }) => {
     
     // Clear errors when user starts typing
     if (field === 'name') {
-      newUsers[index].nameError = "";
+      newUsers[index].nameError = validateUserName(value);
     } else if (field === 'email') {
-      newUsers[index].emailError = "";
+      newUsers[index].emailError = validateEmail(value);
     }
     
     setUsers(newUsers);
@@ -133,8 +135,17 @@ const AddUserModal: React.FC<AddMultipleUsersModalProps> = ({ onClose }) => {
         }
       );
 
+       toast.success(`${users.length} user(s) created successfully!`, {
+        // id: loadingToastId,
+        duration: 2000,
+      });
+
       onClose();
-      window.location.reload();
+      
+      // Reload after a short delay to allow toast to be seen
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error: any) {
       console.error("Error creating users:", error);
       

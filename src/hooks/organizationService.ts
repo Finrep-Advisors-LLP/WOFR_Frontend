@@ -1,5 +1,46 @@
+
 import axios from '../helper/axios';
 import { Organization } from '../types';
+
+// Add this new function for creating organizations
+export const createOrganization = async (
+  organizationData: any,
+  token: string
+): Promise<Organization> => {
+  try {
+    const response = await axios.post(`api/v1/tenant`, organizationData, {
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data?.data;
+  } catch (error) {
+    console.error("Failed to create organization:", error);
+    throw error;
+  }
+};
+
+// Keep your existing functions
+export const updateOrganization = async (
+  organizationData: any,
+  token: string
+): Promise<Organization> => {
+  try {
+    const response = await axios.put(`api/v1/tenant`, organizationData, {
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data?.data;
+  } catch (error) {
+    console.error("Failed to update organization:", error);
+    throw error;
+  }
+};
 
 export const fetchOrganizations = async (
   token: string,
@@ -41,26 +82,6 @@ export const fetchOrganizations = async (
     return { organizations, totalItems };
   } catch (error) {
     console.error("Failed to fetch organizations:", error);
-    throw error;
-  }
-};
-
-export const updateOrganization = async (
-  organizationData: any,
-  token: string
-): Promise<Organization> => {
-  try {
-    const response = await axios.put(`api/v1/tenant`, organizationData, {
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    return response.data?.data;
-  } catch (error) {
-    console.error("Failed to update organization:", error);
     throw error;
   }
 };

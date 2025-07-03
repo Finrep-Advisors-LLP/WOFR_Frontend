@@ -1,6 +1,7 @@
 
 
-import { useEffect } from "react";
+
+import { useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
@@ -14,6 +15,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { authState } = useAuth();
   // const [ setBackgroundLoaded] = useState(false);
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
 
   const {
@@ -95,10 +97,11 @@ const Login = () => {
 
   // Auto-submit OTP when all 4 digits are entered
   useEffect(() => {
+    console.log("Otp verification use effect");
     const otpValue = otpDigits.join("");
     if (otpValue.length === 4 && isOtpDelivered && !isOtpVerifying) {
       const timer = setTimeout(() => {
-        
+
         submitOtpVerification(getValues("email"), otpValue);
       }, 500); // Small delay for better UX
 
@@ -149,6 +152,12 @@ const Login = () => {
   }, [isResetModalVisible, closeResetModal]);
 
 
+  useEffect(() => {
+    if (isOtpDelivered) {
+      otpRefs.current[0]?.focus();
+    }
+  }, [isOtpDelivered]);
+
   return (
     <>
       <div
@@ -160,7 +169,7 @@ const Login = () => {
           backgroundPosition: "center",
         }}
       >
-        <div className="flex flex-col lg:flex-row justify-between items-center gap-4 sm:gap-6 lg:gap-8 xl:gap-10 2xl:gap-30 w-full max-w-7xl px-2 sm:px-4 lg:px-2 py-3 sm:py-4 md:py-6 lg:py-8">
+        <div className="flex flex-col lg:flex-row justify-between items-center gap-4 sm:gap-6 lg:gap-8 xl:gap-10 2xl:gap-12 w-full max-w-7xl px-2 sm:px-4 lg:px-2 py-3 sm:py-4 md:py-6 lg:py-8">
           {/* Left Section - Branding (matches registration) */}
           <div className="flex-1 flex flex-col items-center lg:items-start space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-6 mb-4 lg:mb-0 w-full">
             <div className="w-full flex justify-center lg:justify-start">
@@ -171,7 +180,7 @@ const Login = () => {
                 loading="eager"
               />
             </div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl  text-white font-bold text-center lg:text-left leading-tight">
+            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl text-white font-bold text-center lg:text-left leading-tight">
               Secure Your Financial
               <br />
               Future Today
@@ -300,6 +309,7 @@ const Login = () => {
                       <div className="flex items-center justify-center gap-2 sm:gap-2.5 md:gap-3 lg:gap-2.5 xl:gap-3 ">
                         {otpDigits.map((value, index) => (
                           <input
+                            ref={(el: any) => (otpRefs.current[index] = el)}
                             key={index}
                             id={`otp-${index}`}
                             type="text"
@@ -307,9 +317,14 @@ const Login = () => {
                             pattern="[0-9]*"
                             maxLength={1}
                             value={value}
-                            onChange={(e) =>
-                              handleOtpDigitChange(index, e.target.value)
-                            }
+                            onChange={(e) => {
+                              const { value } = e.target;
+                              handleOtpDigitChange(index, value);
+                              if (value && index < otpRefs.current.length - 1) {
+                                otpRefs.current[index + 1]?.focus();
+                              }
+                            }}
+
                             onKeyDown={(e) => {
                               if (e.key === "Backspace" && !value && index > 0) {
                                 const prevInput = document.getElementById(`otp-${index - 1}`);
@@ -327,6 +342,7 @@ const Login = () => {
                                 });
                               }
                             }}
+
                             className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-12 lg:h-12 xl:w-14 xl:h-14 text-center text-sm sm:text-base md:text-lg lg:text-base xl:text-lg font-bold border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200 bg-gray-50 hover:bg-white hover:border-gray-400"
                             disabled={!isOtpDelivered || isOtpVerifying}
                             aria-label={`OTP digit ${index + 1}`}
@@ -479,4 +495,3 @@ const Login = () => {
 
 
 export default Login;
-

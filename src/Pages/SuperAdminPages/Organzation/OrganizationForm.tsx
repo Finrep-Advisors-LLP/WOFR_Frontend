@@ -1,16 +1,20 @@
+
 import { useForm, Controller } from "react-hook-form";
 import Select from "react-select";
 import countries from "world-countries";
 import { toast } from "react-hot-toast";
-import { useAuth } from "../../hooks/useAuth";
+import { useAuth } from "../../../hooks/useAuth";
 import { useState, useEffect } from "react";
-import { Organization } from "../../types";
-import { updateOrganization } from "../../hooks/organizationService";
+import { Organization } from "../../../types";
+import { updateOrganization } from "../../../hooks/organizationService";
 
 interface OrganizationFormProps {
   onSuccess: () => void;
   onCancel: () => void;
   initialData: Organization | null;
+  isEditting: boolean;
+  setIsEditting: (isEditting: boolean) => void;
+  mode : "create" | "edit";
 }
 
 interface FormData {
@@ -51,6 +55,8 @@ const OrganizationForm = ({
   onSuccess,
   onCancel,
   initialData,
+  isEditting,
+  setIsEditting,
 }: OrganizationFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { authState } = useAuth();
@@ -119,7 +125,7 @@ const OrganizationForm = ({
       zip_postal_code: data.zip_postal_code || null,
       incorporation_date: data.incorporation_date || null,
     };
-
+    console.log(payload, "payload");
 
     try {
       await updateOrganization(payload, authState.token);
@@ -148,6 +154,7 @@ const OrganizationForm = ({
               })}
               className="w-full px-4 py-3 bg-gray-100 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
               placeholder="Enter your organization name"
+              disabled={!isEditting && !!initialData?.organization_type}
             />
             {errors.name && (
               <p className="text-red-500 text-sm">{errors.name.message}</p>
@@ -163,6 +170,7 @@ const OrganizationForm = ({
               control={control}
               name="organization_type"
               rules={{ required: "Organization type is required" }}
+              disabled={!isEditting && !!initialData?.organization_type}
               render={({ field }) => (
                 <select
                   {...field}
@@ -229,6 +237,7 @@ const OrganizationForm = ({
               control={control}
               name="industry_sector"
               rules={{ required: "Industry sector is required" }}
+              // disabled={!isEditting && !!initialData?.organization_type}
               render={({ field }) => (
                 <Select
                   {...field}
@@ -237,12 +246,14 @@ const OrganizationForm = ({
                   isClearable
                   isSearchable
                   className="react-select-container"
+                  isDisabled={!isEditting && !!initialData?.organization_type}
                   classNamePrefix="react-select"
                   styles={{
                     control: (base, state) => ({
                       ...base,
                       backgroundColor: "rgba(243, 244, 246, 1)",
                       borderColor: "transparent",
+                      opacity: 1,
                       boxShadow: state.isFocused
                         ? "0 0 0 2px rgba(59, 130, 246, 0.5)"
                         : "none",
@@ -256,6 +267,10 @@ const OrganizationForm = ({
                       ...base,
                       zIndex: 50,
                       borderRadius: "0.5rem",
+                    }),
+                    singleValue: (base) => ({
+                      ...base,
+                      color: "#111827", // 👈 Text remains dark
                     }),
                   }}
                 />
@@ -271,14 +286,15 @@ const OrganizationForm = ({
           {/* Date of Incorporation */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">
-              Date of Incorporation <span className="text-red-500">*</span>
+              Date of Incorporation 
             </label>
             <input
               type="date"
               {...register("incorporation_date", {
-                required: "Date of incorporation is required",
+                // required: "Date of incorporation is required",
               })}
               className="w-full px-4 py-3 bg-gray-100 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
+              disabled={!isEditting && !!initialData?.organization_type}
             />
             {errors.incorporation_date && (
               <p className="text-red-500 text-sm">
@@ -304,7 +320,7 @@ const OrganizationForm = ({
             </label>
             <input
               {...register("registration_tax_id", {
-                required: "Registration / Tax ID is required",
+                // required: "Registration / Tax ID is required",
                 validate: (value) => {
                   const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
                   const gstinRegex =
@@ -324,6 +340,7 @@ const OrganizationForm = ({
               })}
               className="w-full px-4 py-3 bg-gray-100 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
               placeholder="Enter PAN, GSTIN, or CIN"
+              disabled={!isEditting && !!initialData?.organization_type}
             />
             {errors.registration_tax_id && (
               <p className="text-red-500 text-sm">
@@ -339,6 +356,7 @@ const OrganizationForm = ({
               {...register("address")}
               className="w-full px-4 py-3 bg-gray-100 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
               placeholder="Enter your complete address (optional)"
+              disabled={!isEditting && !!initialData?.organization_type}
             />
           </div>
 
@@ -351,11 +369,13 @@ const OrganizationForm = ({
               control={control}
               name="country"
               rules={{ required: "Country is required" }}
+              //disabled={!isEditting && !!initialData?.organization_type}
               render={({ field }) => (
                 <Select
                   {...field}
                   options={countryOptions}
                   placeholder="Select your country"
+                  isDisabled={!isEditting && !!initialData?.organization_type}
                   isClearable
                   isSearchable
                   className="react-select-container"
@@ -365,11 +385,13 @@ const OrganizationForm = ({
                       ...base,
                       backgroundColor: "rgba(243, 244, 246, 1)",
                       borderColor: "transparent",
+                      opacity: 1, // 👈 Prevent greying out
                       boxShadow: state.isFocused
                         ? "0 0 0 2px rgba(59, 130, 246, 0.5)"
                         : "none",
                       minHeight: "2.75rem",
                       borderRadius: "0.5rem",
+
                       "&:hover": {
                         backgroundColor: "#ffffff",
                       },
@@ -378,6 +400,10 @@ const OrganizationForm = ({
                       ...base,
                       zIndex: 50,
                       borderRadius: "0.5rem",
+                    }),
+                    singleValue: (base) => ({
+                      ...base,
+                      color: "#111827", // 👈 Text remains dark
                     }),
                   }}
                 />
@@ -404,6 +430,7 @@ const OrganizationForm = ({
               })}
               className="w-full px-4 py-3 bg-gray-100 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
               placeholder="Enter 6-digit pincode"
+              disabled={!isEditting && !!initialData?.organization_type}
             />
             {errors.zip_postal_code && (
               <p className="text-red-500 text-sm">
@@ -415,27 +442,42 @@ const OrganizationForm = ({
 
         {/* Buttons */}
         <div className="flex justify-end gap-4 pt-4">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 disabled:bg-blue-400 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? (
-              <>
-                <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
-                <span>Processing...</span>
-              </>
-            ) : (
-              <span>Update Organization</span>
-            )}
-          </button>
+          {isEditting && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+          )}
+
+          {initialData?.organization_type && !isEditting && (
+            <button
+              type="button"
+              onClick={() => setIsEditting(true)}
+              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 disabled:bg-blue-400 disabled:cursor-not-allowed"
+            >
+              Edit
+            </button>
+          )}
+
+          {(!initialData?.organization_type || isEditting) && (
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 disabled:bg-blue-400 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <span>Save</span>
+              )}
+            </button>
+          )}
         </div>
       </form>
     </div>

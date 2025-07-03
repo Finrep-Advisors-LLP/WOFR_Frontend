@@ -1,10 +1,13 @@
-import React, { useEffect, useState, useRef } from "react";
+
+
+import React, { useEffect, useState, useRef, useCallback } from "react";
 // import { ChevronDown } from "lucide-react";
 import { useAuth } from "../../../hooks/useAuth";
 import axios from "../../../helper/axios";
 import TableHeader from "../../../component/common/ui/Table/TableHeader";
 import Pagination from "../../../component/common/ui/Table/Pagination";
-import AssignUser1 from "./NewUser/AssignUser1";
+import { ChevronDown } from "lucide-react";
+import Assignuser from "./NewUser/AssignUser";
 
 interface UserManagementProps {
   isReadOnly: boolean;
@@ -59,7 +62,7 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
   // Refs for smart positioning
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const dropdownRefs = useRef<Record<string, HTMLButtonElement>>({});
-  const [dropdownPosition] = useState<{
+  const [dropdownPosition, setDropdownPosition] = useState<{
     top?: number;
     bottom?: number;
     left: number;
@@ -85,40 +88,23 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
   axios.defaults.headers.common["accept"] = "application/json";
 
   // Calculate smart dropdown position
-  // const calculateDropdownPosition = useCallback((buttonElement: HTMLButtonElement) => {
-  //   const buttonRect = buttonElement.getBoundingClientRect();
-  //   const tableContainer = tableContainerRef.current;
-    
-  //   if (!tableContainer) return { left: 0, openUpward: false };
-    
-  //   const containerRect = tableContainer.getBoundingClientRect();
-  //   const dropdownHeight = 300; // Reduced dropdown height
-  //   const spaceBelow = containerRect.bottom - buttonRect.bottom;
-  //   const spaceAbove = buttonRect.top - containerRect.top;
-    
-  //   // Calculate position relative to the table container
-  //   const relativeLeft = Math.max(0, Math.min(
-  //     buttonRect.left - containerRect.left,
-  //     containerRect.width - 280 // Ensure dropdown doesn't overflow
-  //   ));
-    
-  //   // Determine if dropdown should open upward
-  //   const shouldOpenUpward = spaceBelow < dropdownHeight && spaceAbove > dropdownHeight;
-    
-  //   if (shouldOpenUpward) {
-  //     return {
-  //       bottom: containerRect.bottom - buttonRect.top + 8,
-  //       left: relativeLeft,
-  //       openUpward: true,
-  //     };
-  //   } else {
-  //     return {
-  //       top: buttonRect.bottom - containerRect.top + 8,
-  //       left: relativeLeft,
-  //       openUpward: false,
-  //     };
-  //   }
-  // }, []);
+  const calculateDropdownPosition = useCallback((buttonElement: HTMLButtonElement) => {
+    const buttonRect = buttonElement.getBoundingClientRect();
+    const dropdownHeight = 220; // Your actual dropdown height or estimated
+
+    const spaceBelow = window.innerHeight - buttonRect.bottom;
+    const spaceAbove = buttonRect.top;
+
+    const shouldOpenUpward = spaceBelow < dropdownHeight && spaceAbove > dropdownHeight;
+
+    return {
+      top: shouldOpenUpward ? undefined : buttonRect.bottom + 8,
+      bottom: shouldOpenUpward ? window.innerHeight - buttonRect.top + 8 : undefined,
+      left: buttonRect.left,
+      openUpward: shouldOpenUpward
+    };
+  }, []);
+
 
   // Close dropdown on scroll
   useEffect(() => {
@@ -140,16 +126,16 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (expandedDropdown && tableContainerRef.current) {
         const target = event.target as Node;
-        
+
         // Check if click is on a dropdown button
         const isClickOnDropdownButton = Object.values(dropdownRefs.current).some(
           button => button && button.contains(target)
         );
-        
+
         // Check if click is inside the dropdown content
         const dropdownElement = document.querySelector('.dropdown-content');
         const isClickInsideDropdown = dropdownElement && dropdownElement.contains(target);
-        
+
         // Close dropdown if click is outside button and dropdown content
         if (!isClickOnDropdownButton && !isClickInsideDropdown) {
           setExpandedDropdown(null);
@@ -247,71 +233,70 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
   };
 
   // Enhanced toggle dropdown function with smart positioning
-  // const toggleDropdown = useCallback((
-  //   userId: string,
-  //   type: "roles"
-  // ) => {
-  //   const isCurrentlyOpen = expandedDropdown?.id === userId && expandedDropdown?.type === type;
-    
-  //   if (isCurrentlyOpen) {
-  //     setExpandedDropdown(null);
-  //   } else {
-  //     const buttonKey = `${userId}-${type}`;
-  //     const buttonElement = dropdownRefs.current[buttonKey];
-      
-  //     if (buttonElement) {
-  //       const position = calculateDropdownPosition(buttonElement);
-  //       setDropdownPosition(position);
-  //     }
-      
-  //     setExpandedDropdown({ id: userId, type });
-  //   }
-  // }, [expandedDropdown, calculateDropdownPosition]);
+  const toggleDropdown = useCallback((
+    userId: string,
+    type: "roles"
+  ) => {
+    const isCurrentlyOpen = expandedDropdown?.id === userId && expandedDropdown?.type === type;
+
+    if (isCurrentlyOpen) {
+      setExpandedDropdown(null);
+    } else {
+      const buttonKey = `${userId}-${type}`;
+      const buttonElement = dropdownRefs.current[buttonKey];
+
+      if (buttonElement) {
+        const position = calculateDropdownPosition(buttonElement);
+        setDropdownPosition(position);
+      }
+
+      setExpandedDropdown({ id: userId, type });
+    }
+  }, [expandedDropdown, calculateDropdownPosition]);
 
   // Enhanced function to format assigned data with dropdowns
-  // const formatAssignedRolesDropdown = (userRoles: AssignedRole[], userId: string) => {
-  //   if (userRoles.length === 0) {
-  //     return (
-  //       <button className="inline-flex justify-between items-center w-full min-w-[140px] px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg shadow-sm text-gray-500 cursor-default">
-  //         <span className="text-sm">No roles assigned</span>
-  //       </button>
-  //     );
-  //   }
+  const formatAssignedRolesDropdown = (userRoles: AssignedRole[], userId: string) => {
+    if (userRoles.length === 0) {
+      return (
+        <button className="inline-flex justify-between items-center w-full min-w-[140px] px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg shadow-sm text-gray-500 cursor-default">
+          <span className="text-sm">No roles assigned</span>
+        </button>
+      );
+    }
 
-  //   // Extract unique role names
-  //   const uniqueRoles = [...new Set(
-  //     userRoles.map((role) => role.screen_data?.role?.role_name || "N/A")
-  //   )];
+    // Extract unique role names
+    const uniqueRoles = [...new Set(
+      userRoles.map((role) => role.screen_data?.role?.role_name || "N/A")
+    )];
 
-  //   const buttonKey = `${userId}-roles`;
+    const buttonKey = `${userId}-roles`;
 
-  //   return (
-  //     <div className="relative">
-  //       <button
-  //         ref={(el) => {
-  //           if (el) dropdownRefs.current[buttonKey] = el;
-  //         }}
-  //         onClick={() => toggleDropdown(userId, "roles")}
-  //         className="inline-flex justify-between items-center w-full min-w-[140px] px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg shadow-sm text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150"
-  //       >
-  //         <span className="flex items-center">
-  //           <span className="text-xs font-medium mr-2 px-2 py-1 rounded-full bg-blue-100 text-blue-800">
-  //             {uniqueRoles.length}
-  //           </span>
-  //           <span className="text-sm">Roles</span>
-  //         </span>
-  //         <ChevronDown
-  //           size={16}
-  //           className={`ml-2 transition-transform duration-200 ${
-  //             expandedDropdown?.id === userId && expandedDropdown?.type === "roles"
-  //               ? "transform rotate-180"
-  //               : ""
-  //           }`}
-  //         />
-  //       </button>
-  //     </div>
-  //   );
-  // };
+    return (
+      <div className="relative">
+        <button
+          ref={(el) => {
+            if (el) dropdownRefs.current[buttonKey] = el;
+          }}
+          onClick={() => toggleDropdown(userId, "roles")}
+          className="inline-flex justify-between items-center w-full min-w-[140px] px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg shadow-sm text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-150"
+        >
+          <span className="flex items-center">
+            <span className="text-xs font-medium mr-2 px-2 py-1 rounded-full bg-blue-100 text-blue-800">
+              {uniqueRoles.length}
+            </span>
+            <span className="text-sm">Roles</span>
+          </span>
+          <ChevronDown
+            size={16}
+            className={`ml-2 transition-transform duration-200 ${expandedDropdown?.id === userId && expandedDropdown?.type === "roles"
+                ? "transform rotate-180"
+                : ""
+              }`}
+          />
+        </button>
+      </div>
+    );
+  };
 
   // Calculate total pages
   const totalPages = Math.max(1, Math.ceil(totalUsers / itemsPerPage));
@@ -321,7 +306,7 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
     <div className="p-2 sm:p-4 lg:p-6">
       <div className="mx-auto space-y-4 sm:space-y-6">
         {/* Table Container */}
-        <div 
+        <div
           ref={tableContainerRef}
           className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden relative"
         >
@@ -339,9 +324,9 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
                     <TableHeader className="min-w-[160px] sm:min-w-[200px] text-xs font-semibold text-gray-700 uppercase tracking-wide">
                       Email
                     </TableHeader>
-                    {/* <TableHeader className="min-w-[140px] sm:min-w-[180px] text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                    <TableHeader className="min-w-[140px] sm:min-w-[180px] text-xs font-semibold text-gray-700 uppercase tracking-wide">
                       Assigned Roles
-                    </TableHeader> */}
+                    </TableHeader>
                     <TableHeader className="w-24 sm:w-32 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide">
                       Actions
                     </TableHeader>
@@ -371,8 +356,8 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
                     </tr>
                   ) : (
                     newUsers.map((user1, index) => {
-                      // const userRoles = getUserAssignedRoles(user1.tenant_user_id || "");
-                      // const userId = user1.tenant_user_id || index.toString();
+                      const userRoles = getUserAssignedRoles(user1.tenant_user_id || "");
+                      const userId = user1.tenant_user_id || index.toString();
 
                       return (
                         <tr
@@ -382,8 +367,8 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
                           <td className="px-3 sm:px-4 py-3 sm:py-4 text-center text-sm font-medium text-gray-900">
                             {indexOfFirstItem + index + 1}
                           </td>
-                          <td 
-                            className="px-3 sm:px-6 py-3 sm:py-4"   
+                          <td
+                            className="px-3 sm:px-6 py-3 sm:py-4"
                             onClick={() => {
                               if (onUserSelect && user1.tenant_user_id) {
                                 onUserSelect(user1.tenant_user_id);
@@ -394,8 +379,8 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
                               {user1.name}
                             </div>
                           </td>
-                          <td 
-                            className="px-3 sm:px-6 py-3 sm:py-4"   
+                          <td
+                            className="px-3 sm:px-6 py-3 sm:py-4"
                             onClick={() => {
                               if (onUserSelect && user1.tenant_user_id) {
                                 onUserSelect(user1.tenant_user_id);
@@ -406,9 +391,9 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
                               {user1.email}
                             </div>
                           </td>
-                          {/* <td className="px-3 sm:px-6 py-3 sm:py-4">
+                          <td className="px-3 sm:px-6 py-3 sm:py-4">
                             {formatAssignedRolesDropdown(userRoles, userId)}
-                          </td> */}
+                          </td>
                           <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
                             <button
                               className="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-[#008F98] text-white hover:bg-[#007a82] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-150 shadow-sm"
@@ -443,15 +428,17 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
 
           {/* Smart positioned dropdown */}
           {expandedDropdown && (
-            <div 
-              className="dropdown-content absolute z-50 w-72 sm:w-80 bg-white rounded-lg shadow-2xl border border-gray-200 animate-fadeIn"
+            <div
+              className="dropdown-content fixed z-50 w-72 sm:w-80 bg-white rounded-lg shadow-2xl border border-gray-200 animate-fadeIn"
               style={{
-                top: dropdownPosition.openUpward ? 'auto' : dropdownPosition.top,
-                bottom: dropdownPosition.openUpward ? dropdownPosition.bottom : 'auto',
+                top: dropdownPosition.top,
+                bottom: dropdownPosition.bottom,
                 left: dropdownPosition.left,
-                maxWidth: 'calc(100vw - 2rem)',
+                maxHeight: '300px', // Make it match your dropdownHeight
+                overflowY: 'auto'
               }}
             >
+
               <div className="p-3 sm:p-4 border-b border-gray-100">
                 <span className="text-sm font-semibold text-gray-900">
                   Assigned Roles ({(() => {
@@ -495,7 +482,7 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
       </div>
 
       {showAssignmentForm && selectedUser && (
-        <AssignUser1
+        <Assignuser
           user={selectedUser}
           onClose={() => {
             setShowAssignmentForm(false);
@@ -508,3 +495,7 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
 };
 
 export default SuperUserManagement;
+
+
+
+
