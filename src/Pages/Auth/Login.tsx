@@ -1,7 +1,4 @@
-
-
-
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
@@ -9,18 +6,18 @@ import backgroundImages from "../../../public/background";
 import { useLogin } from "../../hooks/useLogin";
 import { useAuth } from "../../hooks/useAuth";
 
-
 const Login = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { authState } = useAuth();
   // const [ setBackgroundLoaded] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
-
+  const [otpDigits, setOtpDigits] = useState(["", "", "", ""]);
+  const [otpError, setOtpError] = useState<string | null>(null);
 
   const {
     isPasswordVisible,
-    otpDigits,
+    // otpDigits
     isOtpDelivered,
     isOtpProcessing,
     isOtpVerifying,
@@ -28,8 +25,11 @@ const Login = () => {
     isResetModalVisible,
     resetEmailAddress,
     isPasswordResetProcessing,
+    emailError,
+    passwordError,
+    // otpError,
     togglePasswordVisibility,
-    handleOtpDigitChange,
+    // handleOtpDigitChange,
     requestOtpCode,
     submitOtpVerification,
     resendOtpCode,
@@ -40,20 +40,21 @@ const Login = () => {
     handleModalOutsideClick,
     requestPasswordReset,
     setResetEmailAddress,
+    setEmailError,
+    setPasswordError,
   } = useLogin();
-
 
   const {
     register,
     formState: { errors },
     getValues,
+    trigger,
   } = useForm({
     defaultValues: {
       email: "",
       password: "",
     },
   });
-
 
   // Redirect to dashboard if already authenticated
   useEffect(() => {
@@ -62,7 +63,6 @@ const Login = () => {
     }
   }, [authState.isAuthenticated, navigate]);
 
-
   // Optimized background image preloading (same as registration)
   useEffect(() => {
     const img = new Image();
@@ -70,10 +70,10 @@ const Login = () => {
     // img.onerror = () => setBackgroundLoaded(true);
     img.src = "/background/landingHeroImage.png";
 
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'image';
-    link.href = '/background/landingHeroImage.png';
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "image";
+    link.href = "/background/landingHeroImage.png";
     document.head.appendChild(link);
 
     return () => {
@@ -83,10 +83,11 @@ const Login = () => {
     };
   }, []);
 
-
   // Login method configuration from admin settings
-  const loginMethodFromAdmin: "password" | "otp" | "both" = "both" as "password" | "otp" | "both";
-
+  const loginMethodFromAdmin: "password" | "otp" | "both" = "both" as
+    | "password"
+    | "otp"
+    | "both";
 
   const isPasswordAuthEnabled =
     loginMethodFromAdmin === "password" || loginMethodFromAdmin === "both";
@@ -94,29 +95,34 @@ const Login = () => {
   const isOtpAuthEnabled =
     loginMethodFromAdmin === "otp" || loginMethodFromAdmin === "both";
 
-
   // Auto-submit OTP when all 4 digits are entered
+  const [isVerifying, setIsVerifying] = useState(false);
   useEffect(() => {
-    console.log("Otp verification use effect");
     const otpValue = otpDigits.join("");
-    if (otpValue.length === 4 && isOtpDelivered && !isOtpVerifying) {
-      const timer = setTimeout(() => {
-
-        submitOtpVerification(getValues("email"), otpValue);
-      }, 500); // Small delay for better UX
-
-      return () => clearTimeout(timer);
+    if (otpValue.length === 4 && isOtpDelivered && !isVerifying) {
+      const verifyOtp = async () => {
+        setIsVerifying(true);
+        try {
+          await submitOtpVerification(getValues("email"), otpValue);
+        } catch (error) {
+          setOtpError(typeof error === "string" ? error : "Invalid OTP");
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          setOtpDigits(["", "", "", ""]);
+          setOtpError(null);
+          otpRefs.current[0]?.focus();
+        } finally {
+          setIsVerifying(false);
+        }
+      };
+      verifyOtp();
     }
-  }, [otpDigits, isOtpDelivered, submitOtpVerification, getValues]);
+  }, [otpDigits]);
 
-
-  // Handle Google OAuth callback
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const code = searchParams.get("code");
     const error = searchParams.get("error");
     const state = searchParams.get("state");
-
 
     if (code && !error) {
       handleGoogleAuthCallback(code, state);
@@ -124,7 +130,6 @@ const Login = () => {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [location, handleGoogleAuthCallback]);
-
 
   // Handle modal escape key and body overflow
   useEffect(() => {
@@ -134,9 +139,7 @@ const Login = () => {
       }
     };
 
-
     document.addEventListener("keydown", handleEscapeKey);
-
 
     if (isResetModalVisible) {
       document.body.classList.add("overflow-hidden");
@@ -144,19 +147,44 @@ const Login = () => {
       document.body.classList.remove("overflow-hidden");
     }
 
-
     return () => {
       document.removeEventListener("keydown", handleEscapeKey);
       document.body.classList.remove("overflow-hidden");
     };
   }, [isResetModalVisible, closeResetModal]);
 
+  const handleBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name } = e.target;
+
+    await trigger(name as "email" | "password");
+  };
 
   useEffect(() => {
     if (isOtpDelivered) {
       otpRefs.current[0]?.focus();
     }
   }, [isOtpDelivered]);
+
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const pasteData = e.clipboardData.getData("text/plain").trim();
+      const otpValue = pasteData.replace(/\D/g, "").slice(0, 4);
+
+      if (otpValue.length === 4) {
+        setOtpError(null);
+
+        const newOtpDigits = [...otpDigits];
+        otpValue.split("").forEach((digit, idx) => {
+          newOtpDigits[idx] = digit;
+        });
+        setOtpDigits(newOtpDigits);
+
+        setTimeout(() => otpRefs.current[3]?.focus(), 0);
+      }
+    },
+    [otpDigits]
+  );
 
   return (
     <>
@@ -191,14 +219,12 @@ const Login = () => {
             </p>
           </div>
 
-
           {/* Right Section - Login Form (responsive sizing) */}
           <div className="flex-1 w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl">
             <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl shadow-2xl p-3 sm:p-4 md:p-5 lg:p-6 xl:p-7 2xl:p-8 border border-gray-100">
               <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-2xl 2xl:text-3xl font-semibold text-gray-800 text-center mb-2 sm:mb-2 lg:mb-3 xl:mb-4">
                 Log in to your Account
               </h2>
-
 
               <form className="space-y-2 sm:space-y-3 lg:space-y-4">
                 {/* Email */}
@@ -213,19 +239,34 @@ const Login = () => {
                     type="email"
                     id="email"
                     placeholder="example@gmail.com"
-                    className={`w-full px-3 py-2.5 lg:py-3 bg-gray-200 border ${errors.email ? "border-red-500" : "border-gray-200"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all duration-200 text-sm lg:text-base`}
+                    className={`w-full px-3 py-2.5 lg:py-3 bg-gray-200 border ${
+                      errors.email || emailError
+                        ? "border-red-500"
+                        : "border-gray-200"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all duration-200 text-sm lg:text-base`}
                     {...register("email", {
                       required: "Email is required",
+                      pattern: {
+                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+
+                        message: "Invalid email address",
+                      },
+
+                      onChange: () => setEmailError(""),
                     })}
+                    onBlur={handleBlur}
                   />
                   {errors.email && (
                     <p className="text-red-500 text-xs lg:text-sm mt-1">
                       {errors.email.message}
                     </p>
                   )}
+                  {emailError && !errors.email && (
+                    <p className="text-red-500 text-xs lg:text-sm mt-1">
+                      {emailError}
+                    </p>
+                  )}
                 </div>
-
 
                 {/* Password */}
                 {isPasswordAuthEnabled && (
@@ -241,8 +282,11 @@ const Login = () => {
                         type={isPasswordVisible ? "text" : "password"}
                         id="password"
                         placeholder="••••••"
-                        className={`w-full px-3 py-2.5 lg:py-3 pr-10 bg-gray-200 border ${errors.password ? "border-red-500" : "border-gray-200"
-                          } rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all duration-200 text-sm lg:text-base`}
+                        className={`w-full px-3 py-2.5 lg:py-3 pr-10 bg-gray-200 border ${
+                          errors.password || passwordError
+                            ? "border-red-500"
+                            : "border-gray-200"
+                        } rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all duration-200 text-sm lg:text-base`}
                         {...register("password", {
                           required: isPasswordAuthEnabled
                             ? "Password is required"
@@ -251,7 +295,9 @@ const Login = () => {
                             value: 6,
                             message: "Password must be at least 6 characters",
                           },
+                          onChange: () => setPasswordError(""),
                         })}
+                        onBlur={handleBlur}
                       />
                       <button
                         type="button"
@@ -267,6 +313,11 @@ const Login = () => {
                     {errors.password && (
                       <p className="text-red-500 text-xs lg:text-sm mt-1">
                         {errors.password.message}
+                      </p>
+                    )}
+                    {passwordError && !errors.password && (
+                      <p className="text-red-500 text-xs lg:text-sm mt-1">
+                        {passwordError}
                       </p>
                     )}
                   </div>
@@ -289,60 +340,59 @@ const Login = () => {
                       onClick={() =>
                         requestOtpCode(
                           getValues("email"),
-                          isPasswordAuthEnabled ? getValues("password") : undefined
+                          isPasswordAuthEnabled
+                            ? getValues("password")
+                            : undefined
                         )
                       }
                       disabled={isOtpProcessing}
                       className="w-3/4 mx-auto block bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2.5 lg:py-3 px-4 rounded-md focus:outline-none disabled:bg-teal-400 transition-all duration-200 text-sm lg:text-base shadow-lg hover:shadow-xl disabled:opacity-50"
                     >
-                      {isOtpProcessing ? "Sending..." : "Generate OTP for Verification"}
+                      {isOtpProcessing
+                        ? "Sending..."
+                        : "Generate OTP for Verification"}
                     </button>
                     {/* OTP Input Section - Enhanced responsive design */}
                     <div className=" flex flex-col items-center text-center">
-                      {/* <p className="text-xs lg:text-sm text-gray-600 ">
-                        {isOtpDelivered
-                          ? "We've sent a verification code to your email"
-                          : "Generate OTP to verify your account"}
-                      </p> */}
-
                       {/* OTP Input boxes - Responsive sizing */}
-                      <div className="flex items-center justify-center gap-2 sm:gap-2.5 md:gap-3 lg:gap-2.5 xl:gap-3 ">
-                        {otpDigits.map((value, index) => (
+                      <div
+                        className="flex items-center justify-center gap-2 sm:gap-2.5 md:gap-3 lg:gap-2.5 xl:gap-3 "
+                        onPaste={handlePaste}
+                      >
+                        {otpDigits.map((digit, index) => (
                           <input
-                            ref={(el: any) => (otpRefs.current[index] = el)}
                             key={index}
+                            ref={(el: any) => (otpRefs.current[index] = el)}
                             id={`otp-${index}`}
                             type="text"
                             inputMode="numeric"
                             pattern="[0-9]*"
                             maxLength={1}
-                            value={value}
+                            value={otpDigits[index] || ""}
                             onChange={(e) => {
-                              const { value } = e.target;
-                              handleOtpDigitChange(index, value);
-                              if (value && index < otpRefs.current.length - 1) {
-                                otpRefs.current[index + 1]?.focus();
+                              const value = e.target.value;
+                              if (/^\d*$/.test(value)) {
+                                const newOtp = [...otpDigits];
+                                newOtp[index] = value;
+                                setOtpDigits(newOtp);
+
+                                if (value && index < 3) {
+                                  otpRefs.current[index + 1]?.focus();
+                                }
                               }
                             }}
-
                             onKeyDown={(e) => {
-                              if (e.key === "Backspace" && !value && index > 0) {
-                                const prevInput = document.getElementById(`otp-${index - 1}`);
+                              if (
+                                e.key === "Backspace" &&
+                                !digit &&
+                                index > 0
+                              ) {
+                                const prevInput = document.getElementById(
+                                  `otp-${index - 1}`
+                                );
                                 prevInput?.focus();
                               }
                             }}
-                            onPaste={(e) => {
-                              e.preventDefault();
-                              const pastedData = e.clipboardData.getData('text');
-                              if (/^\d{4}$/.test(pastedData)) {
-                                pastedData.split('').forEach((digit, idx) => {
-                                  if (idx < 4) {
-                                    handleOtpDigitChange(idx, digit);
-                                  }
-                                });
-                              }
-                            }}
-
                             className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-12 lg:h-12 xl:w-14 xl:h-14 text-center text-sm sm:text-base md:text-lg lg:text-base xl:text-lg font-bold border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200 bg-gray-50 hover:bg-white hover:border-gray-400"
                             disabled={!isOtpDelivered || isOtpVerifying}
                             aria-label={`OTP digit ${index + 1}`}
@@ -350,7 +400,11 @@ const Login = () => {
                         ))}
                       </div>
 
-
+                      {otpError && (
+                        <p className="text-red-500 text-xs lg:text-sm mt-1">
+                          {otpError}
+                        </p>
+                      )}
 
                       {/* Resend OTP */}
                       {isOtpDelivered && (
@@ -374,7 +428,6 @@ const Login = () => {
                   </>
                 )}
 
-
                 {/* Login Button - Enhanced styling */}
                 <button
                   type="button"
@@ -385,12 +438,15 @@ const Login = () => {
                       otpDigits.join("")
                     );
                   }}
-                  disabled={!isOtpDelivered || isOtpVerifying || otpDigits.join("").length < 4}
+                  disabled={
+                    !isOtpDelivered ||
+                    isOtpVerifying ||
+                    otpDigits.join("").length < 4
+                  }
                   className="w-full sm:w-3/5 lg:w-3/4 xl:w-2/3 2xl:w-1/2 mx-auto block bg-teal-600 hover:bg-teal-700 text-white font-semibold py-1.5 sm:py-3 lg:py-3 px-4 sm:px-6 rounded-lg sm:rounded-xl transition-all duration-300 text-xs sm:text-sm lg:text-base focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
                 >
                   {isOtpVerifying ? "Verifying..." : "Login"}
                 </button>
-
 
                 {/* Sign up link */}
                 <p className="text-center text-xs lg:text-sm text-gray-600 mt-3 lg:mt-4">
@@ -402,7 +458,6 @@ const Login = () => {
                     Sign up
                   </Link>
                 </p>
-
 
                 {/* Google Login - Commented but optimized */}
                 {/* <div className="mt-4 sm:mt-6">
@@ -422,7 +477,6 @@ const Login = () => {
         </div>
       </div>
 
-
       {/* Password Reset Modal - Enhanced responsive design */}
       {isResetModalVisible && (
         <div
@@ -440,7 +494,6 @@ const Login = () => {
                 Reset Password
               </h3>
             </div>
-
 
             <form onSubmit={(e) => requestPasswordReset(e, resetEmailAddress)}>
               <div className="px-4 sm:px-5 md:px-6 py-4 sm:py-5">
@@ -468,7 +521,6 @@ const Login = () => {
                 </div>
               </div>
 
-
               <div className="px-4 sm:px-5 md:px-6 py-3 sm:py-4 bg-gray-50 flex flex-row-reverse gap-2 sm:gap-3">
                 <button
                   type="submit"
@@ -492,6 +544,5 @@ const Login = () => {
     </>
   );
 };
-
 
 export default Login;

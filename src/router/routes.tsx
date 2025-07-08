@@ -1,6 +1,4 @@
 
-
-
 import { RouteObject, Navigate } from "react-router-dom";
 import Login from "../Pages/Auth/Login";
 import Register from "../Pages/Auth/Register";
@@ -19,7 +17,8 @@ import CreateLease from "../Pages/LeaseMangement/createLease/CreateLease";
 import PublicLayoutWrapper from "../component/layout/PublicLayoutWrapper";
 import DashboardLayout from "../component/layout/DashboardLayout";
 import UserProfile from "../Pages/MasterAdmin/Users/UserProfile";
-// import SuperUserProfile from "../Pages/SuperAdminPages/User/SuperUserProfile";
+import ViewLease from "../Pages/LeaseMangement/ViewLease/ViewLease";
+// import CheckerLeaseReview from "../Pages/LeaseMangement/CheckerWorkflow/CheckerLeaseReview";
 
 export const publicRoutes: RouteObject[] = [
   {
@@ -70,14 +69,18 @@ export const publicRoutes: RouteObject[] = [
 ];
 
 // Function to recursively flatten all routes (including nested children)
-const flattenRoutes = (routes: any[]): any[] => {
-  const flattened: any[] = [];
+// This function now correctly builds the full path for each route
+const flattenRoutes = (routes: any[], parentPath = ''): RouteObject[] => {
+  const flattened: RouteObject[] = [];
 
   routes.forEach((route) => {
-    // Add the main route if it has an element
+    // Construct the full path for the current route
+    const currentFullPath = route.path ? `${parentPath}/${route.path}`.replace(/\/\//g, '/') : parentPath;
+
+    // If the route has an element, add it to the flattened list
     if (route.element) {
       flattened.push({
-        path: route.path,
+        path: currentFullPath.startsWith('/') ? currentFullPath.substring(1) : currentFullPath, // Remove leading slash if present
         element: (
           <ProtectedRoute allowedRoles={route.allowedRoles}>
             {route.element}
@@ -86,37 +89,9 @@ const flattenRoutes = (routes: any[]): any[] => {
       });
     }
 
-    // Process children recursively
+    // Recursively process children, passing the currentFullPath as the new parentPath
     if (route.children) {
-      route.children.forEach((child: any) => {
-        // Add child route if it has an element
-        if (child.element) {
-          flattened.push({
-            path: child.path,
-            element: (
-              <ProtectedRoute allowedRoles={child.allowedRoles}>
-                {child.element}
-              </ProtectedRoute>
-            ),
-          });
-        }
-
-        // Process nested children (like Master submenu items)
-        if (child.children) {
-          child.children.forEach((nestedChild: any) => {
-            if (nestedChild.element) {
-              flattened.push({
-                path: nestedChild.path,
-                element: (
-                  <ProtectedRoute allowedRoles={nestedChild.allowedRoles}>
-                    {nestedChild.element}
-                  </ProtectedRoute>
-                ),
-              });
-            }
-          });
-        }
-      });
+      flattened.push(...flattenRoutes(route.children, currentFullPath));
     }
   });
 
@@ -125,12 +100,12 @@ const flattenRoutes = (routes: any[]): any[] => {
 
 const InitialDashboardRedirect = () => {
   const lastRoute = localStorage.getItem('lastRoute');
-  
+
   // Check if the lastRoute is valid and not the dashboard overview
   if (lastRoute && lastRoute !== '/dashboard/overview') {
     return <Navigate to={lastRoute} replace />;
   }
-  
+
   // Default to overview
   return <Navigate to="/dashboard/overview" replace />;
 };
@@ -144,43 +119,32 @@ export const dashboardRoutes: RouteObject[] = [
         index: true,
         element: <InitialDashboardRedirect />,
       },
-      
-      // Use the new flatten function to handle all nested routes
+
+      // Use the updated flatten function to handle all nested routes
       ...flattenRoutes(DashboardRoutes),
 
       // Additional dynamic routes
       {
         path: "users/userDetails/:id",
-        element: (
-          <ProtectedRoute allowedRoles={["dev", "master_admin", "super_admin"]}>
-            <UserProfile />
-          </ProtectedRoute>
-        ),
+        element: <ProtectedRoute allowedRoles={["dev", "master_admin", "super_admin"]}><UserProfile /></ProtectedRoute>,
       },
-      // {
-      //   path: "users/SuperuserDetails/:id",
-      //   element: (
-      //     <ProtectedRoute allowedRoles={["dev", "super_admin"]}>
-      //       <SuperUserProfile />
-      //     </ProtectedRoute>
-      //   ),
-      // },
       {
         path: "create-lease",
-        element: (
-          <ProtectedRoute allowedRoles={["dev", "master_admin", "super_admin"]}>
-            <CreateLease />
-          </ProtectedRoute>
-        ),
+        element: <ProtectedRoute allowedRoles={["dev", "master_admin", "super_admin"]}><CreateLease /></ProtectedRoute>,
       },
       {
+        path: "lease/view/:id",
+        element: <ProtectedRoute allowedRoles={["dev", "master_admin", "super_admin"]}><ViewLease /></ProtectedRoute>,
+      },
+      // {
+      //   path: "checker-lease/review/:id",
+      //   element: <ProtectedRoute allowedRoles={["dev", "master_admin", "super_admin"]}><CheckerLeaseReview /></ProtectedRoute>,
+      // },
+      {
         path: "bulk-upload",
-        element: (
-          <ProtectedRoute allowedRoles={["dev", "master_admin", "super_admin"]}>
-            <BulkUpload />
-          </ProtectedRoute>
-        ),
+        element: <ProtectedRoute allowedRoles={["dev", "master_admin", "super_admin"]}><BulkUpload /></ProtectedRoute>,
       },
     ],
   },
 ];
+

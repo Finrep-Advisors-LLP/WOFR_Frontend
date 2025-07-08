@@ -1,5 +1,4 @@
 
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
@@ -16,10 +15,13 @@ interface UseLoginReturn {
   isResetModalVisible: boolean;
   resetEmailAddress: string;
   isPasswordResetProcessing: boolean;
+  emailError: string;
+  passwordError: string;
+  otpError: string;
   togglePasswordVisibility: () => void;
   handleOtpDigitChange: (index: number, value: string) => void;
   requestOtpCode: (email: string, password?: string) => Promise<void>;
-  submitOtpVerification: (email: string, otpCode: string) => Promise<void>;
+  submitOtpVerification: (email: string, otpCode: string) => Promise<boolean>;
   resendOtpCode: (email: string, password?: string) => Promise<void>;
   initiateGoogleAuth: () => Promise<void>;
   handleGoogleAuthCallback: (
@@ -31,6 +33,9 @@ interface UseLoginReturn {
   handleModalOutsideClick: (e: React.MouseEvent<HTMLDivElement>) => void;
   requestPasswordReset: (e: React.FormEvent, email: string) => Promise<void>;
   setResetEmailAddress: React.Dispatch<React.SetStateAction<string>>;
+  setEmailError: React.Dispatch<React.SetStateAction<string>>;
+  setPasswordError: React.Dispatch<React.SetStateAction<string>>;
+  setOtpError: React.Dispatch<React.SetStateAction<string>>;
 }
 
 export const useLogin = (): UseLoginReturn => {
@@ -50,6 +55,9 @@ export const useLogin = (): UseLoginReturn => {
   const [resetEmailAddress, setResetEmailAddress] = useState<string>("");
   const [isPasswordResetProcessing, setIsPasswordResetProcessing] =
     useState<boolean>(false);
+  const [emailError, setEmailError] = useState<string>("");
+  const [passwordError, setPasswordError] = useState<string>("");
+  const [otpError, setOtpError] = useState<string>("");
 
   const showNotification = (message: string, isSuccess: boolean) => {
     Swal.fire({
@@ -89,10 +97,13 @@ export const useLogin = (): UseLoginReturn => {
 
   const requestOtpCode = async (email: string, password?: string) => {
     if (!email) {
-      showNotification("Email is required", false);
+      setEmailError("Email is required");
       return;
     }
-
+   // Clear previous errors
+    setEmailError("");
+    setPasswordError("");
+    setOtpError("");
     setIsOtpProcessing(true);
 
     try {
@@ -109,72 +120,61 @@ export const useLogin = (): UseLoginReturn => {
     } catch (error: any) {
       console.error("OTP generation error:", error);
       const errorMessage =
-        error.response?.data?.detail ||
-        error.message ||
-        "Failed to generate OTP. Please try again.";
-      showNotification(errorMessage, false);
+       error.response?.data?.detail || error.message;
+     if (errorMessage.toLowerCase().includes("password") || 
+        errorMessage.toLowerCase().includes("invalid credentials") ||
+        errorMessage.toLowerCase().includes("incorrect password")) {
+      setPasswordError(errorMessage);
+    } else if (errorMessage.toLowerCase().includes("email") || 
+               errorMessage.toLowerCase().includes("not found") ||
+               errorMessage.toLowerCase().includes("user")) {
+      setEmailError(errorMessage);
+    } else {
+      setEmailError(errorMessage);
+    }
     } finally {
       setIsOtpProcessing(false);
     }
   };
 
-  const submitOtpVerification = async (email: string, otpCode: string) => {
-    if (otpCode.length !== 4) {
-      showNotification("Please enter the complete 4-digit OTP", false);
-      return;
-    }
-
-
-  // Check if all digits are numbers
-  if (!/^\d{4}$/.test(otpCode)) {
-    showNotification("OTP must contain only numbers", false);
-    return;
+  // Modify the submitOtpVerification function:
+const submitOtpVerification = async (email: string, otpCode: string) => {
+  if (otpCode.length !== 4 || !/^\d{4}$/.test(otpCode)) {
+    throw "Please enter a valid 4-digit OTP";
   }
 
-
-
-    setIsOtpVerifying(true);
-    try {
-      const response = await axios.post(`api/auth/v1/verify-login-otp`, {
-        email_or_phone: email,
-        otp_code: otpCode,
-      });
-      console.log(response.data);
-      
-      if (response.data) {
-        if (response.data.token) {
-          login(
-            response.data.token,
-            response.data.username,
-            response.data.user_type ,
-            response.data.email 
-          );
-
-          showNotification("Login successful", true);
-          setTimeout(() => navigate("/dashboard"), 1000);
-        }
-      }
-    } catch (error: any) {
-      console.error("OTP verification error:", error);
-      const errorMessage =
-        error.response?.data?.detail || "Invalid OTP. Please try again.";
-      showNotification(errorMessage, false);
-      setOtpDigits(["", "", "", ""]);
-
-
-      setTimeout(() => {
-        const firstInput = document.getElementById("otp-0");
-        firstInput?.focus();
-      }, 100);
+  setIsOtpVerifying(true);
   
-
-    } finally {
-      setIsOtpVerifying(false);
+  try {
+    const response = await axios.post(`api/auth/v1/verify-login-otp`, {
+      email_or_phone: email,
+      otp_code: otpCode,
+    });
+    
+    if (response.data?.token) {
+      login(
+        response.data.token,
+        response.data.username,
+        response.data.user_type,
+        response.data.email
+      );
+      showNotification("Login successful", true);
+      setTimeout(() => navigate("/dashboard"), 1000);
+      return true;
     }
-  };
+    throw "Verification failed";
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.detail || error.message || "Invalid OTP";
+    // showNotification(errorMessage, false);
+    throw errorMessage; 
+  } finally {
+    setIsOtpVerifying(false);
+  }
+};
 
-  const resendOtpCode = (email: string, password?: string) =>
-    requestOtpCode(email, password);
+  const resendOtpCode = async (email: string, password?: string) =>{
+   await  requestOtpCode(email, password);
+  }
 
   // Optimized Google authentication with minimal code
   const initiateGoogleAuth = async () => {
@@ -244,10 +244,10 @@ export const useLogin = (): UseLoginReturn => {
   const requestPasswordReset = async (e: React.FormEvent, email: string) => {
     e.preventDefault();
 
-  if (!email || !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.(com|org|net)$/i.test(email)) {
-  showNotification("Please enter a valid email address", false);
-  return;
-}
+    if (!email || !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.(com|org|net)$/i.test(email)) {
+      showNotification("Please enter a valid email address", false);
+      return;
+    }
 
     setIsPasswordResetProcessing(true);
 
@@ -279,6 +279,9 @@ export const useLogin = (): UseLoginReturn => {
     isResetModalVisible,
     resetEmailAddress,
     isPasswordResetProcessing,
+    emailError,
+    passwordError,
+    otpError,
     togglePasswordVisibility,
     handleOtpDigitChange,
     requestOtpCode,
@@ -291,5 +294,8 @@ export const useLogin = (): UseLoginReturn => {
     handleModalOutsideClick,
     requestPasswordReset,
     setResetEmailAddress,
+    setEmailError,
+    setPasswordError,
+    setOtpError,
   };
 };

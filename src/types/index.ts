@@ -96,6 +96,7 @@ export interface Document {
 }
 
 export interface CashflowEntry {
+  type: string;
   id: string;
   leaseId: string;
   date: string;
@@ -133,8 +134,8 @@ leaserMaster: string | string[];
   leaseClass: string;
   isShortTerm: boolean;
   isLowValue: boolean;
-  startDate: string;
-  endDate: string;
+  startDate: Date;
+  endDate: Date;
   terminationDate: string;
   duration: Duration;
   hasCashflow: boolean;

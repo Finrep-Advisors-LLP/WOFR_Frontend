@@ -1,33 +1,30 @@
-import { LeaseFormData } from "../../../../types";
-import {
-  JSXElementConstructor,
-  Key,
-  ReactElement,
-  ReactNode,
-  ReactPortal,
-  useState,
-} from "react";
 
-interface LeaseReviewSubmitProps {
+
+
+import React, { useState, useEffect } from "react";
+import { LeaseFormData } from "../../../../types";
+
+interface LeaseSummaryProps {
   formData: LeaseFormData;
   onPrevious: () => void;
   onNext: () => void;
   isSaving?: boolean;
+  readOnly?: boolean;
+  disabled?: boolean;
 }
 
-const LeaseSummary: React.FC<LeaseReviewSubmitProps> = ({
-  // formData,
+
+const LeaseSummary: React.FC<LeaseSummaryProps> = ({
   onPrevious,
   onNext,
+  readOnly = false,
 }) => {
-  
-  type TabType = typeof tabs[number];
+  const [activeTab, setActiveTab] = useState("Cash_Flow");
+  const [loading, setLoading] = useState(true);
+  const [tabData, setTabData] = useState<Record<string, any>>({});
 
-const [activeTab, setActiveTab] = useState<TabType>("Cash_Flow"); 
-  // const [activeTab, setActiveTab] = useState("Cash_Flow");
 
   const tabs = [
-    
     "Cash_Flow",
     "Liability_Schedule",
     "SD1",
@@ -39,9 +36,61 @@ const [activeTab, setActiveTab] = useState<TabType>("Cash_Flow");
     "Short Term | Low Value",
     "Journal_Entries",
   ];
-  // Sample data for different tabs
-  const tabData = {
-    Rou_Summary: {
+
+
+  // Simulate API calls for each tab
+  useEffect(() => {
+    const fetchTabData = async (tabName: string) => {
+      // Simulate loading delay
+      setLoading(true);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+     
+      // Commented API calls - replace with actual APIs when available
+      /*
+      try {
+        const response = await fetch(`/api/v1/lease-summary/${tabName.toLowerCase()}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(formData)
+        });
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error(`Error fetching ${tabName} data:`, error);
+        return { headers: [], rows: [] };
+      }
+      */
+     
+      // Sample data for demonstration
+      // const sampleData = {
+      //   Cash_Flow: {
+      //     headers: [
+      //       "Lease ID", "Class", "Date", "Period", "Cash flow", "Discount factor", "PV"
+      //     ],
+      //     rows: [
+      //       ["Mumbai", "Building", "2024-04-10", "-", "-", "-", "-"],
+      //       ["Mumbai", "Building", "2024-04-10", "1.00", "1,709,190.00", "1.00", "1,709,190.00"],
+      //       ["Mumbai", "Building", "2024-05-01", "2.00", "2,441,700.00", "0.99", "2,423,503.53"],
+      //       ["Mumbai", "Building", "2024-06-01", "3.00", "2,441,700.00", "0.99", "2,405,442.66"],
+      //       ["Mumbai", "Building", "2024-07-01", "4.00", "2,441,700.00", "0.98", "2,387,516.39"],
+      //     ]
+      //   },
+      //   Liability_Schedule: {
+      //     headers: [
+      //       "LEASE ID", "CLASS", "DATE", "OPENING LIABILITY", "ADDITION", "DELETION", "INTEREST", "REPAYMENT", "CLOSING LIABILITY"
+      //     ],
+      //     rows: [
+      //       ["Mumbai", "Building", "2024-04-10", "419,638,349.53", "419,638,349.53", "-", "-", "-", "-"],
+      //       ["Mumbai", "Building", "2024-04-10", "419,638,349.53", "-", "-", "-", "1,709,190.00", "417,929,159.53"],
+      //     ]
+      //   },
+      //   // Add other tabs with similar structure
+      // };
+   const sampleData = {
+      Rou_Summary: {
       headers: [
         "CLASS",
         "LEASE COUNT",
@@ -639,21 +688,31 @@ const [activeTab, setActiveTab] = useState<TabType>("Cash_Flow");
   };
 
 
+      setLoading(false);
+      return sampleData[tabName as keyof typeof sampleData] || { headers: [], rows: [] };
+    };
 
-  const currentData = tabData[activeTab as keyof typeof tabData];
+
+    fetchTabData(activeTab).then(data => {
+      setTabData(prev => ({ ...prev, [activeTab]: data }));
+    });
+  }, [activeTab]);
+
+
+  const currentData = tabData[activeTab] || { headers: [], rows: [] };
+
 
   const handleNext = () => {
     onNext();
   };
 
+
   return (
     <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-lg shadow-sm mx-auto">
       <div className="mb-3">
-        {/* <h5 className="text-xl sm:text-3xl font-semibold text-gray-900">
-          Lease Summary
-        </h5> */}
-         <h3 className="text-lg font-semibold mb-4 text-gray-800">Lease Summary</h3>
+        <h3 className="text-lg font-semibold mb-4 text-gray-800">Lease Summary</h3>
       </div>
+     
       <div className="w-full max-w-full mx-auto bg-white">
         {/* Tab Navigation */}
         <div className="border-b border-gray-200 bg-gray-50">
@@ -676,75 +735,65 @@ const [activeTab, setActiveTab] = useState<TabType>("Cash_Flow");
           </div>
         </div>
 
+
         {/* Table Content */}
         <div className="overflow-x-auto bg-white">
           <div className="min-w-full">
-            <table className="min-w-full divide-y divide-gray-200">
-              {/* Table Header */}
-              <thead className="bg-gray-50">
-                <tr>
-                  {currentData.headers.map(
-                    (
-                      header:
-                        | string
-                        | number
-                        | bigint
-                        | boolean
-                        | ReactElement<
-                            unknown,
-                            string | JSXElementConstructor<any>
-                          >
-                        | Iterable<ReactNode>
-                        | ReactPortal
-                        | Promise<
-                            | string
-                            | number
-                            | bigint
-                            | boolean
-                            | ReactPortal
-                            | ReactElement<
-                                unknown,
-                                string | JSXElementConstructor<any>
-                              >
-                            | Iterable<ReactNode>
-                            | null
-                            | undefined
-                          >
-                        | null
-                        | undefined,
-                      index: Key | null | undefined
-                    ) => (
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <p className="mt-2 text-gray-600">Loading {activeTab.replace("_", " ")} data...</p>
+                </div>
+              </div>
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200">
+                {/* Table Header */}
+                <thead className="bg-gray-50">
+                  <tr>
+                    {currentData.headers?.map((header: string, index: number) => (
                       <th
                         key={index}
                         className="px-2 sm:px-4 py-3 text-left text-xs font-medium text-black-500 uppercase tracking-wider whitespace-nowrap"
                       >
                         {header}
                       </th>
-                    )
-                  )}
-                </tr>
-              </thead>
+                    ))}
+                  </tr>
+                </thead>
 
-              {/* Table Body */}
-              <tbody className="bg-white divide-y divide-gray-200">
-                {currentData.rows.map(
-                  (row: any[], rowIndex: Key | null | undefined) => (
-                    <tr key={rowIndex} className="hover:bg-gray-50">
-                      {row.map((cell, cellIndex) => (
-                        <td
-                          key={cellIndex}
-                          className="px-2 sm:px-4 py-3 text-xs sm:text-sm text-gray-900 whitespace-nowrap"
-                        >
-                          {cell}
-                        </td>
-                      ))}
+
+                {/* Table Body */}
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {currentData.rows?.length > 0 ? (
+                    currentData.rows.map((row: any[], rowIndex: number) => (
+                      <tr key={rowIndex} className="hover:bg-gray-50">
+                        {row.map((cell, cellIndex) => (
+                          <td
+                            key={cellIndex}
+                            className="px-2 sm:px-4 py-3 text-xs sm:text-sm text-gray-900 whitespace-nowrap"
+                          >
+                            {cell}
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={currentData.headers?.length || 1} className="px-6 py-12 text-center">
+                        <div className="text-gray-500">
+                          <p>No data available for {activeTab.replace("_", " ")}</p>
+                          <p className="text-sm mt-1">Data will be generated based on lease information</p>
+                        </div>
+                      </td>
                     </tr>
-                  )
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
+
 
         {/* Mobile-friendly summary for very small screens */}
         <div className="block sm:hidden bg-gray-50 p-4">
@@ -757,37 +806,62 @@ const [activeTab, setActiveTab] = useState<TabType>("Cash_Flow");
           <p className="text-xs text-gray-600 mt-1">
             Total Records:{" "}
             <span className="font-medium text-gray-900">
-              {currentData.rows.length}
+              {currentData.rows?.length || 0}
             </span>
           </p>
         </div>
       </div>
 
-      <div className="mt-8 flex justify-between">
-        <button
-          type="button"
-          onClick={onPrevious}
-          className="bg-white cursor-pointer text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
-        >
-          Previous
-        </button>
 
-        <button
-          type="button"
-          className="bg-white cursor-pointer text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
-        >
-          Save
-        </button>
-        <button
-          type="button"
-          onClick={handleNext}
-          className="bg-[#008F98] text-white px-4 py-2 rounded-md hover:bg-[#007A82] transition-colors w-full sm:w-auto"
-        >
-          Next
-        </button>
-      </div>
+      {!readOnly && (
+        <div className="mt-8 flex justify-between">
+          <button
+            type="button"
+            onClick={onPrevious}
+            className="bg-white cursor-pointer text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            className="bg-white cursor-pointer text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={handleNext}
+            className="bg-[#008F98] text-white px-4 py-2 rounded-md hover:bg-[#007A82] transition-colors w-full sm:w-auto"
+          >
+            Next
+          </button>
+        </div>
+      )}
+
+
+      {/* READ-ONLY MODE NAVIGATION */}
+      {readOnly && (
+        <div className="mt-8 flex justify-between">
+          <button
+            type="button"
+            onClick={onPrevious}
+            className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            className="bg-[#008F98] text-white px-4 py-2 rounded-md hover:bg-[#007A82] transition-colors"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 };
 
+
 export default LeaseSummary;
+

@@ -48,7 +48,7 @@ const UserRolesPage: React.FC<UserManagementProps> = ({
       try {
         setLoading(true);
         const response = await axios.get(
-          `api/v1/tenant-user?page=1&limit=10&sort_by=created_at&sort_order=asc`,
+          `api/v1/tenant/user?page=1&limit=10&sort_by=created_at&sort_order=asc`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -88,7 +88,7 @@ const UserRolesPage: React.FC<UserManagementProps> = ({
       try {
         setLoading(true);
         const response = await axios.get(
-          `api/v1/assigned-user-role-module-actions?page=1&limit=10`,
+          `/api/v1/user/assigned?page=1&limit=10`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

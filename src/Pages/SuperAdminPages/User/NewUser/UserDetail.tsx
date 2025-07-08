@@ -90,7 +90,7 @@ const UserDetail: React.FC<UserDetailProps> = ({ userId, onBack }) => {
         setError(null);
 
         // Fetch user basic info (you might need to adjust this endpoint)
-        const userResponse = await axios.get(`api/v1/tenant-user`, {
+        const userResponse = await axios.get(`api/v1/tenant/users`, {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/json",

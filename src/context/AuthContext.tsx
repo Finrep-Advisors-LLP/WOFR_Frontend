@@ -23,7 +23,12 @@ interface AuthState {
 
 interface AuthContextType {
   authState: AuthState;
-  login: (token: string, username?: string, user_type?: string, email?: string) => void;
+  login: (
+    token: string,
+    username?: string,
+    user_type?: string,
+    email?: string
+  ) => void;
   logout: () => void;
 }
 
@@ -79,16 +84,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
       } catch (err) {
         console.error("Invalid token:", err);
-        setAuthState(prev => ({ ...prev, isLoading: false }));
+        setAuthState((prev) => ({ ...prev, isLoading: false }));
         logout();
       }
     } else {
-      setAuthState(prev => ({ ...prev, isLoading: false }));
+      setAuthState((prev) => ({ ...prev, isLoading: false }));
     }
   }, []);
 
   const login = useCallback(
-    (token: string, usernameFromApi?: string, userTypeFromApi?: string, emailFromApi?: string) => {
+    (
+      token: string,
+      usernameFromApi?: string,
+      userTypeFromApi?: string,
+      emailFromApi?: string
+    ) => {
       try {
         const decoded = jwtDecode<TokenPayload>(token);
         localStorage.setItem("token", token);
@@ -103,9 +113,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           email: emailFromApi ?? null,
           isLoading: false,
         });
+        localStorage.setItem(
+          "userData",
+          JSON.stringify({
+            username: usernameFromApi ?? decoded.username ?? "",
+            user_type: userTypeFromApi ?? decoded.user_type ?? "",
+            user_id: decoded.user_id ?? "",
+            tenant_id: decoded.tenant_id ?? "",
+            email: emailFromApi ?? "",
+          })
+        );
       } catch (err) {
         console.error("Failed to decode token:", err);
-        setAuthState(prev => ({ ...prev, isLoading: false }));
+        setAuthState((prev) => ({ ...prev, isLoading: false }));
       }
     },
     []

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { LeaseFormData } from "../../../types";
@@ -17,8 +17,8 @@ const initialFormData: LeaseFormData = {
   leaseClass: "",
   isShortTerm: false,
   isLowValue: false,
-  startDate: "",
-  endDate: "",
+  startDate: new Date(),
+  endDate: new Date(),
   terminationDate: "",
   duration: {
     years: 0,
@@ -48,7 +48,10 @@ const initialFormData: LeaseFormData = {
   cashflowAmount: "",
   cashflowType: "",
   cashflowEntries: [
-    { id: uuidv4(), leaseId: "", date: "", amount: "" }
+    {
+      id: uuidv4(), leaseId: "", date: "", amount: "",
+      type: ""
+    }
   ],
   securityDeposits: [
     {
@@ -66,12 +69,11 @@ const initialFormData: LeaseFormData = {
       id: uuidv4(),
       revisionDate: "",
       revisedPayment: "",
-      // remark: "",
     }
   ],
-entityMaster: [] as string[],
-leaserMaster: [] as string[],
-department: [],
+  entityMaster: [] as string[],
+  leaserMaster: [] as string[],
+  department: [],
   entityDepartmentPercentages: undefined,
   lessorPercentages: undefined,
   hasMultiEntityAllocation: false,
@@ -80,12 +82,16 @@ department: [],
   hasLessorAllocation: false
 };
 
+
 const CreateLease: React.FC = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [formData, setFormData] = useState<LeaseFormData>(initialFormData);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [savedFormData, setSavedFormData] = useState<LeaseFormData>(initialFormData);
+
 
   // Create filtered steps and step mapping
   const { filteredSteps, displayCurrentStep } = useMemo(() => {
@@ -116,7 +122,7 @@ const CreateLease: React.FC = () => {
       {
         id: 5,
         name: "Lease Summary",
-        status: currentStep === 5 ? "current" : "upcoming",
+        status: currentStep === 5 ? "current" : currentStep > 5 ? "complete" : "upcoming",
       },
       {
         id: 6,
@@ -125,13 +131,13 @@ const CreateLease: React.FC = () => {
       }
     ];
 
+
     // Filter out skipped steps
     const filtered = allSteps.filter(step => !step.skip);
-    
+   
     // Map the current step to display step for indicator
     let displayStep = currentStep;
     if (formData.hasCashflow && currentStep === 5) {
-      // show it as step 2 in the indicator
       displayStep = 2;
     }
     const updatedFilteredSteps = filtered.map((step, index) => ({
@@ -144,19 +150,52 @@ const CreateLease: React.FC = () => {
             ? ("complete" as const)
             : ("upcoming" as const),
     }));
-    
+   
+
 
     return {
       filteredSteps: updatedFilteredSteps,
       displayCurrentStep: displayStep
     };
   }, [currentStep, formData.hasCashflow]);
-  
+ 
   const updateFormData = useCallback((data: Partial<LeaseFormData>) => {
     setFormData((prevData) => ({ ...prevData, ...data }));
   }, []);
 
-  const handleNext = () => {
+
+  // Save data before navigation
+  const saveCurrentStep = async () => {
+    setIsSaving(true);
+    setSaveError(null);
+   
+    try {
+      // Simulate save operation
+      await new Promise(resolve => setTimeout(resolve, 500));
+     
+      // Store in component state (not localStorage as requested)
+      setSavedFormData({ ...formData });
+     
+      // Mark current step as completed
+      if (!completedSteps.includes(currentStep)) {
+        setCompletedSteps(prev => [...prev, currentStep]);
+      }
+     
+      return true;
+    } catch (error) {
+      setSaveError("Failed to save. Please try again.");
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+
+  const handleNext = async () => {
+    const saved = await saveCurrentStep();
+    if (!saved) return;
+
+
     if (formData.hasCashflow && currentStep === 1) {
       setCurrentStep(5);
     } else if (currentStep < 6) {
@@ -165,7 +204,12 @@ const CreateLease: React.FC = () => {
     window.scrollTo(0, 0);
   };
 
-  const handlePrevious = () => {
+
+  const handlePrevious = async () => {
+    const saved = await saveCurrentStep();
+    if (!saved) return;
+
+
     if (formData.hasCashflow && currentStep === 5) {
       setCurrentStep(1);
     } else if (currentStep > 1) {
@@ -174,31 +218,78 @@ const CreateLease: React.FC = () => {
     window.scrollTo(0, 0);
   };
 
+
+  const handleStepClick = async (stepId: number) => {
+    // Only allow navigation to completed steps or current step
+    if (completedSteps.includes(stepId) || stepId === currentStep) {
+      const saved = await saveCurrentStep();
+      if (!saved) return;
+
+
+      // Handle special case for cashflow mode
+      if (formData.hasCashflow) {
+        if (stepId === 2) {
+          setCurrentStep(5); // Summary
+        } else if (stepId === 1) {
+          setCurrentStep(1); // Lease Terms
+        } else if (stepId === 3) {
+          setCurrentStep(6); // Review & Submit
+        }
+      } else {
+        setCurrentStep(stepId);
+      }
+      window.scrollTo(0, 0);
+    }
+  };
+
+
   const handleSave = async () => {
+    await saveCurrentStep();
+  };
+
+
+  const handleSubmit = async () => {
     setIsSaving(true);
-    setSaveError(null);
-    
+   
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      
-      // Show success message
-      alert("Changes saved successfully!");
+      // Final API call to create lease
+      /*
+      const response = await fetch('/api/v1/lease', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formData)
+      });
+     
+      if (!response.ok) {
+        throw new Error('Failed to create lease');
+      }
+     
+      const result = await response.json();
+      */
+     
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+     
+      toast.success("Lease created successfully!");
+      navigate("/dashboard/lease");
     } catch (error) {
-      setSaveError("Failed to save changes. Please try again.");
+      toast.error("Failed to create lease. Please try again.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleSubmit = () => {
 
-    // Simulate submission and redirect
-    setTimeout(() => {
-      toast.success("Lease created successfully!");
-      navigate("/dashboard/Lease");
-    }, 1000);
-  };
+  // Load saved data on component mount
+  useEffect(() => {
+    if (savedFormData !== initialFormData) {
+      setFormData(savedFormData);
+    }
+  }, []);
+
 
   return (
     <div className="container mx-auto px-2 py-2">
@@ -213,10 +304,11 @@ const CreateLease: React.FC = () => {
           </p>
         </div>
 
+
         {/* Right Section */}
         <div className="mt-2 md:mt-0">
           <Link
-            to="/dashboard/Lease"
+            to="/dashboard/lease"
             className="text-blue-600 hover:text-blue-800 flex items-center text-sm sm:text-base whitespace-nowrap"
           >
             <ArrowLeft size={18} className="mr-1" />
@@ -224,14 +316,21 @@ const CreateLease: React.FC = () => {
           </Link>
         </div>
       </div>
-      
-      <MultiStepIndicator steps={filteredSteps} currentStep={displayCurrentStep} />
+     
+      <MultiStepIndicator
+        steps={filteredSteps}
+        currentStep={displayCurrentStep}
+        onStepClick={handleStepClick}
+        completedSteps={completedSteps}
+      />
+
 
       {saveError && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-700">
           {saveError}
         </div>
       )}
+
 
       {currentStep === 1 && (
         <LeaseBasicInfo
@@ -243,6 +342,7 @@ const CreateLease: React.FC = () => {
         />
       )}
 
+
       {currentStep === 2 && !formData.hasCashflow && (
         <LessorDetails
           formData={formData}
@@ -250,9 +350,10 @@ const CreateLease: React.FC = () => {
           onNext={handleNext}
           onPrevious={handlePrevious}
           onSave={handleSave}
-          isSaving={false}
+          isSaving={isSaving}
         />
       )}
+
 
       {currentStep === 3 && !formData.hasCashflow && (
         <LeaseFinancialDetails
@@ -264,6 +365,7 @@ const CreateLease: React.FC = () => {
         />
       )}
 
+
       {currentStep === 4 && !formData.hasCashflow && (
         <LeaseRentRevision
           formData={formData}
@@ -273,16 +375,9 @@ const CreateLease: React.FC = () => {
           isSaving={isSaving}
         />
       )}
-          {/* {currentStep === 5 && !formData.hasCashflow && (
-        <LeaseSummary
-          formData={formData}
-          onPrevious={handlePrevious}
-          onNext={handleNext}
-          isSaving={isSaving}
-        />
-      )} */}
 
-{currentStep === 5  && (
+
+      {currentStep === 5  && (
         <LeaseSummary
           formData={formData}
           onPrevious={handlePrevious}
@@ -290,6 +385,7 @@ const CreateLease: React.FC = () => {
           isSaving={isSaving}
         />
       )}
+
 
       {currentStep === 6 && (
         <LeaseReviewSubmit
@@ -302,5 +398,6 @@ const CreateLease: React.FC = () => {
   );
 };
 
- export default CreateLease;
+
+export default CreateLease;
 

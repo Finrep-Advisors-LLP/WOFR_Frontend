@@ -124,7 +124,7 @@ return "";
       }));
 
       await axios.post(
-        "api/v1/tenant-user",
+        "api/v1/tenant/user",
         userData,
         {
           headers: {
