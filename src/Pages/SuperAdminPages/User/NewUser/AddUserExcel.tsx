@@ -1,9 +1,16 @@
 
-
-import { UserPlus, X, Upload, FileText, AlertCircle, CheckCircle } from "lucide-react";
+import {
+  UserPlus,
+  X,
+  Upload,
+  FileText,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react";
 import { useState, useRef } from "react";
 import { useAuth } from "../../../../hooks/useAuth";
 import axios from "../../../../helper/axios";
+import * as XLSX from "xlsx";
 
 interface UserData {
   name: string;
@@ -27,36 +34,54 @@ const AddUserExcel: React.FC<CSVUploadModalProps> = ({ onClose }) => {
   const { authState } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [csvData, setCsvData] = useState<UserData[]>([]);
-  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [validationResult, setValidationResult] =
+    useState<ValidationResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [uploadStep, setUploadStep] = useState<'upload' | 'preview' | 'result'>('upload');
+  const [uploadStep, setUploadStep] = useState<"upload" | "preview" | "result">(
+    "upload"
+  );
   const [apiError, setApiError] = useState<string>("");
+  const [createdUsers, setCreatedUsers] = useState([]);
+  const [skippedUsers, setSkippedUsers] = useState([]);
+  const [dragActive, setDragActive] = useState(false);
 
   // Download template for both CSV and Excel
-  const downloadTemplate = (format: 'csv' | 'excel') => {
+  const downloadTemplate = (format: "csv" | "excel") => {
     const data = [
-      ['name', 'email'],
-      ['John Doe', 'john.doe@company.com'],
-      ['Jane Smith', 'jane.smith@company.com']
+      ["name", "email"],
+      ["John Doe", "john.doe@company.com"],
+      ["Jane Smith", "jane.smith@company.com"],
     ];
 
-    if (format === 'csv') {
-      const csvContent = data.map(row => row.join(',')).join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv' });
+    if (format === "csv") {
+      const csvContent = data.map((row) => row.join(",")).join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv" });
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = 'user_template.csv';
+      a.download = "user_template.csv";
       a.click();
       window.URL.revokeObjectURL(url);
     } else {
-      // For Excel, we'll create a simple CSV that Excel can open
-      const csvContent = data.map(row => row.join(',')).join('\n');
-      const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel' });
+      // Use XLSX for proper Excel format
+      const worksheet = XLSX.utils.aoa_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
+
+      // Create a Blob from workbook
+      const excelBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+      });
+
+      const blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = 'user_template.xls';
+      a.download = "user_template.xlsx";
       a.click();
       window.URL.revokeObjectURL(url);
     }
@@ -64,31 +89,93 @@ const AddUserExcel: React.FC<CSVUploadModalProps> = ({ onClose }) => {
 
   // Enhanced CSV parser that handles Excel exports
   const parseCSV = (text: string): UserData[] => {
-    const lines = text.trim().split('\n');
+    const lines = text.trim().split("\n");
     if (lines.length < 2) {
-      throw new Error('File must contain at least a header row and one data row');
+      throw new Error(
+        "File must contain at least a header row and one data row"
+      );
     }
 
-    const headers = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/"/g, ''));
-    
-    const nameIndex = headers.findIndex(h => h.includes('name'));
-    const emailIndex = headers.findIndex(h => h.includes('email'));
-    
+    const headers = lines[0]
+      .toLowerCase()
+      .split(",")
+      .map((h) => h.trim().replace(/"/g, ""));
+
+    const nameIndex = headers.findIndex((h) => h.includes("name"));
+    const emailIndex = headers.findIndex((h) => h.includes("email"));
+
     if (nameIndex === -1 || emailIndex === -1) {
       throw new Error('File must contain "name" and "email" columns');
     }
 
-    return lines.slice(1).map((line, index) => {
-      // Handle quoted values and commas within quotes
-      const values = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
-      const cleanValues = values.map(v => v.trim().replace(/^"|"$/g, ''));
-      
-      return {
-        name: (cleanValues[nameIndex] || '').trim(),
-        email: (cleanValues[emailIndex] || '').trim(),
-        row: index + 2 
+    return lines
+      .slice(1)
+      .map((line, index) => {
+        // Handle quoted values and commas within quotes
+        const values = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
+        const cleanValues = values.map((v) => v.trim().replace(/^"|"$/g, ""));
+
+        return {
+          name: (cleanValues[nameIndex] || "").trim(),
+          email: (cleanValues[emailIndex] || "").trim(),
+          row: index + 2,
+        };
+      })
+      .filter((user) => user.name || user.email);
+  };
+
+  const parseXLSX = (file: File): Promise<UserData[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: "array" });
+
+          const worksheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[worksheetName];
+
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          if (jsonData.length < 2) {
+            throw new Error(
+              "File must contain at least a header row and one data row"
+            );
+          }
+
+          const headers = (jsonData[0] as string[]).map((h) =>
+            h ? h.toString().toLowerCase().trim() : ""
+          );
+
+          const nameIndex = headers.findIndex((h) => h.includes("name"));
+          const emailIndex = headers.findIndex((h) => h.includes("email"));
+
+          if (nameIndex === -1 || emailIndex === -1) {
+            throw new Error('File must contain "name" and "email" columns');
+          }
+
+          const users = jsonData
+            .slice(1)
+            .map((row: any, index) => {
+              const rowData = Array.isArray(row) ? row : [];
+              return {
+                name: (rowData[nameIndex] || "").toString().trim(),
+                email: (rowData[emailIndex] || "").toString().trim(),
+                row: index + 2,
+              };
+            })
+            .filter((user) => user.name || user.email);
+
+          resolve(users);
+        } catch (error: any) {
+          reject(new Error(`Error parsing XLSX file: ${error.message}`));
+        }
       };
-    }).filter(user => user.name || user.email); 
+
+      reader.onerror = () => reject(new Error("Error reading file"));
+      reader.readAsArrayBuffer(file);
+    });
   };
 
   // Enhanced validation with better error messages
@@ -96,37 +183,39 @@ const AddUserExcel: React.FC<CSVUploadModalProps> = ({ onClose }) => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     const nameRegex = /^[a-zA-Z\s'-]+$/;
     const emails = new Set<string>();
-    
+
     const valid: UserData[] = [];
     const invalid: UserData[] = [];
 
-    users.forEach(user => {
+    users.forEach((user) => {
       const errors: string[] = [];
-      
+
       // Name validation
       if (!user.name.trim()) {
-        errors.push('Name is required');
+        errors.push("Name is required");
       } else if (user.name.length < 2) {
-        errors.push('Name must be at least 2 characters');
+        errors.push("Name must be at least 2 characters");
       } else if (user.name.length > 50) {
-        errors.push('Name must be less than 50 characters');
+        errors.push("Name must be less than 50 characters");
       } else if (!nameRegex.test(user.name)) {
-        errors.push('Name should contain only letters, spaces, hyphens and apostrophes');
+        errors.push(
+          "Name should contain only letters, spaces, hyphens and apostrophes"
+        );
       }
-      
+
       // Email validation
       if (!user.email.trim()) {
-        errors.push('Email is required');
+        errors.push("Email is required");
       } else if (user.email.length > 100) {
-        errors.push('Email must be less than 100 characters');
+        errors.push("Email must be less than 100 characters");
       } else if (!emailRegex.test(user.email)) {
-        errors.push('Invalid email format');
+        errors.push("Invalid email format");
       } else if (emails.has(user.email.toLowerCase())) {
-        errors.push('Duplicate email in file');
+        errors.push("Duplicate email in file");
       } else {
         emails.add(user.email.toLowerCase());
       }
-      
+
       if (errors.length > 0) {
         invalid.push({ ...user, errors });
       } else {
@@ -138,45 +227,111 @@ const AddUserExcel: React.FC<CSVUploadModalProps> = ({ onClose }) => {
   };
 
   // Enhanced file upload handler
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = event.target.files?.[0];
+  //   if (!file) return;
+
+  //   const fileName = file.name.toLowerCase();
+  //   const isValidFile =
+  //     fileName.endsWith(".csv") ||
+  //     fileName.endsWith(".xls") ||
+  //     fileName.endsWith(".xlsx");
+
+  //   if (!isValidFile) {
+  //     setApiError("Please upload a CSV or Excel file (.csv, .xls, .xlsx)");
+  //     return;
+  //   }
+
+  //   setApiError("");
+  //   const reader = new FileReader();
+  //   reader.onload = (e) => {
+  //     try {
+  //       const text = e.target?.result as string;
+  //       const parsedData = parseCSV(text);
+
+  //       if (parsedData.length === 0) {
+  //         throw new Error("No valid data found in file");
+  //       }
+
+  //       if (parsedData.length > 100) {
+  //         throw new Error("Maximum 100 users allowed per upload");
+  //       }
+
+  //       const validation = validateUsers(parsedData);
+
+  //       setCsvData(parsedData);
+  //       setValidationResult(validation);
+  //       setUploadStep("preview");
+  //     } catch (error) {
+  //       setApiError(
+  //         error instanceof Error ? error.message : "Error parsing file"
+  //       );
+  //     }
+  //   };
+  //   reader.readAsText(file);
+  // };
+
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const fileName = file.name.toLowerCase();
-    const isValidFile = fileName.endsWith('.csv') || 
-                       fileName.endsWith('.xls') || 
-                       fileName.endsWith('.xlsx');
+    const isValidFile =
+      fileName.endsWith(".csv") ||
+      fileName.endsWith(".xls") ||
+      fileName.endsWith(".xlsx");
 
     if (!isValidFile) {
-      setApiError('Please upload a CSV or Excel file (.csv, .xls, .xlsx)');
+      setApiError("Please upload a CSV or Excel file (.csv, .xls, .xlsx)");
       return;
     }
 
     setApiError("");
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const text = e.target?.result as string;
-        const parsedData = parseCSV(text);
-        
-        if (parsedData.length === 0) {
-          throw new Error('No valid data found in file');
-        }
-        
-        if (parsedData.length > 100) {
-          throw new Error('Maximum 100 users allowed per upload');
-        }
-        
-        const validation = validateUsers(parsedData);
-        
-        setCsvData(parsedData);
-        setValidationResult(validation);
-        setUploadStep('preview');
-      } catch (error) {
-        setApiError(error instanceof Error ? error.message : 'Error parsing file');
+
+    try {
+      let parsedData: UserData[];
+
+      if (fileName.endsWith(".csv")) {
+        // Handle CSV files (existing logic)
+        const reader = new FileReader();
+        parsedData = await new Promise((resolve, reject) => {
+          reader.onload = (e) => {
+            try {
+              const text = e.target?.result as string;
+              const result = parseCSV(text);
+              resolve(result);
+            } catch (error) {
+              reject(error);
+            }
+          };
+          reader.onerror = () => reject(new Error("Error reading file"));
+          reader.readAsText(file);
+        });
+      } else {
+        // Handle XLSX/XLS files
+        parsedData = await parseXLSX(file);
       }
-    };
-    reader.readAsText(file);
+
+      if (parsedData.length === 0) {
+        throw new Error("No valid data found in file");
+      }
+
+      if (parsedData.length > 100) {
+        throw new Error("Maximum 100 users allowed per upload");
+      }
+
+      const validation = validateUsers(parsedData);
+
+      setCsvData(parsedData);
+      setValidationResult(validation);
+      setUploadStep("preview");
+    } catch (error) {
+      setApiError(
+        error instanceof Error ? error.message : "Error parsing file"
+      );
+    }
   };
 
   // Enhanced API call with better error handling
@@ -185,33 +340,34 @@ const AddUserExcel: React.FC<CSVUploadModalProps> = ({ onClose }) => {
 
     setIsLoading(true);
     setApiError("");
-    
+    setCreatedUsers([]);
+    setSkippedUsers([]);
+
     try {
       const token = authState.token;
-      const userData = validationResult.valid.map(user => ({
+      const userData = validationResult.valid.map((user) => ({
         name: user.name.trim(),
-        email: user.email.toLowerCase().trim()
+        email: user.email.toLowerCase().trim(),
       }));
 
-       await axios.post(
-        "api/v1/tenant-user",
-        userData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await axios.post("api/v1/tenant/user", userData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      });
 
-      setUploadStep('result');
+      console.log("Users created successfully:", response.data);
+      setCreatedUsers(response.data.created_users || []);
+      setSkippedUsers(response.data.skipped_users || []);
+      setUploadStep("result");
     } catch (error: any) {
       console.error("Error creating users:", error);
-      
+
       // Enhanced error handling from API response
-      let errorMessage = 'Error creating users. Please try again.';
-      
+      let errorMessage = "Error creating users. Please try again.";
+
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.response?.data?.detail) {
@@ -219,7 +375,7 @@ const AddUserExcel: React.FC<CSVUploadModalProps> = ({ onClose }) => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setApiError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -229,18 +385,23 @@ const AddUserExcel: React.FC<CSVUploadModalProps> = ({ onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-1 sm:p-2">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
-        
         {/* Compact Header */}
         <div className="bg-gradient-to-r from-green-600 to-emerald-700 px-3 py-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Upload className="h-4 w-4 text-white" />
               <div>
-                <h2 className="text-sm font-bold text-white">Bulk User Upload</h2>
+                <h2 className="text-sm font-bold text-white">
+                  Bulk User Upload
+                </h2>
                 <p className="text-green-100 text-xs">Upload CSV/Excel file</p>
               </div>
             </div>
-            <button onClick={onClose} disabled={isLoading} className="p-1 hover:bg-white/20 rounded">
+            <button
+              onClick={onClose}
+              disabled={isLoading}
+              className="p-1 hover:bg-white/20 rounded"
+            >
               <X className="h-4 w-4 text-white" />
             </button>
           </div>
@@ -253,18 +414,23 @@ const AddUserExcel: React.FC<CSVUploadModalProps> = ({ onClose }) => {
               <div className="flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
                 <div className="text-sm text-red-700">{apiError}</div>
-                <button onClick={() => setApiError("")} className="ml-auto text-red-500">
+                <button
+                  onClick={() => setApiError("")}
+                  className="ml-auto text-red-500"
+                >
                   <X className="h-3 w-3" />
                 </button>
               </div>
             </div>
           )}
 
-          {uploadStep === 'upload' && (
+          {uploadStep === "upload" && (
             <div className="space-y-3">
               {/* Instructions */}
               <div className="bg-blue-50 border border-blue-200 rounded p-2">
-                <h3 className="text-xs font-semibold text-blue-800 mb-1">Requirements</h3>
+                <h3 className="text-xs font-semibold text-blue-800 mb-1">
+                  Requirements
+                </h3>
                 <ul className="text-xs text-blue-700 space-y-0.5">
                   <li>• CSV/Excel with "name" and "email" columns</li>
                   <li>• Max 100 users, unique emails, valid format</li>
@@ -273,41 +439,89 @@ const AddUserExcel: React.FC<CSVUploadModalProps> = ({ onClose }) => {
 
               {/* Template Downloads */}
               <div className="flex gap-2 justify-center">
-                <button onClick={() => downloadTemplate('csv')} className="text-xs px-2 py-1 text-blue-600 hover:bg-blue-50 rounded">
-                  <FileText className="h-3 w-3 inline mr-1" />CSV Template
+                <button
+                  onClick={() => downloadTemplate("csv")}
+                  className="text-xs px-2 py-1 text-blue-600 hover:bg-blue-50 rounded"
+                >
+                  <FileText className="h-3 w-3 inline mr-1" />
+                  CSV Template
                 </button>
-                <button onClick={() => downloadTemplate('excel')} className="text-xs px-2 py-1 text-green-600 hover:bg-green-50 rounded">
-                  <FileText className="h-3 w-3 inline mr-1" />Excel Template
+                <button
+                  onClick={() => downloadTemplate("excel")}
+                  className="text-xs px-2 py-1 text-green-600 hover:bg-green-50 rounded"
+                >
+                  <FileText className="h-3 w-3 inline mr-1" />
+                  Excel Template
                 </button>
               </div>
 
               {/* Upload Area */}
-              <div className="border-2 border-dashed border-gray-300 rounded p-4 text-center hover:border-green-400">
+              <div
+                className={`border-2 rounded p-4 text-center transition-colors duration-200 ${
+                  dragActive
+                    ? "border-green-500 bg-green-50"
+                    : "border-dashed border-gray-300 hover:border-green-400"
+                }`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragActive(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  setDragActive(false);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragActive(false);
+                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    handleFileUpload({
+                      target: { files: e.dataTransfer.files },
+                    } as React.ChangeEvent<HTMLInputElement>);
+                  }
+                }}
+              >
                 <Upload className="h-6 w-6 text-gray-400 mx-auto mb-2" />
-                <h3 className="text-sm font-medium text-gray-700 mb-1">Upload File</h3>
+                <h3 className="text-sm font-medium text-gray-700 mb-1">
+                  Upload or Drag & Drop File
+                </h3>
                 <p className="text-xs text-gray-500 mb-2">CSV or Excel file</p>
-                <input ref={fileInputRef} type="file" accept=".csv,.xls,.xlsx" onChange={handleFileUpload} className="hidden" />
-                <button onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 bg-green-600 text-white rounded text-sm">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.xls,.xlsx"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-3 py-1.5 bg-green-600 text-white rounded text-sm"
+                >
                   Choose File
                 </button>
               </div>
             </div>
           )}
 
-          {uploadStep === 'preview' && validationResult && (
+          {uploadStep === "preview" && validationResult && (
             <div className="space-y-3">
               {/* Summary */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="bg-blue-50 p-2 rounded text-center">
-                  <div className="text-lg font-bold text-blue-600">{csvData.length}</div>
+                  <div className="text-lg font-bold text-blue-600">
+                    {csvData.length}
+                  </div>
                   <div className="text-xs text-blue-800">Total</div>
                 </div>
                 <div className="bg-green-50 p-2 rounded text-center">
-                  <div className="text-lg font-bold text-green-600">{validationResult.valid.length}</div>
+                  <div className="text-lg font-bold text-green-600">
+                    {validationResult.valid.length}
+                  </div>
                   <div className="text-xs text-green-800">Valid</div>
                 </div>
                 <div className="bg-red-50 p-2 rounded text-center">
-                  <div className="text-lg font-bold text-red-600">{validationResult.invalid.length}</div>
+                  <div className="text-lg font-bold text-red-600">
+                    {validationResult.invalid.length}
+                  </div>
                   <div className="text-xs text-red-800">Invalid</div>
                 </div>
               </div>
@@ -316,13 +530,21 @@ const AddUserExcel: React.FC<CSVUploadModalProps> = ({ onClose }) => {
               {validationResult.valid.length > 0 && (
                 <div>
                   <h3 className="text-sm font-semibold text-green-700 mb-1 flex items-center gap-1">
-                    <CheckCircle className="h-3 w-3" />Valid Users ({validationResult.valid.length})
+                    <CheckCircle className="h-3 w-3" />
+                    Valid Users ({validationResult.valid.length})
                   </h3>
                   <div className="bg-green-50 rounded max-h-24 overflow-y-auto">
                     {validationResult.valid.slice(0, 5).map((user, index) => (
-                      <div key={index} className="px-2 py-1 border-b border-green-200 last:border-b-0 flex justify-between text-xs">
-                        <span className="font-medium truncate">{user.name}</span>
-                        <span className="text-gray-600 truncate ml-2">{user.email}</span>
+                      <div
+                        key={index}
+                        className="px-2 py-1 border-b border-green-200 last:border-b-0 flex justify-between text-xs"
+                      >
+                        <span className="font-medium truncate">
+                          {user.name}
+                        </span>
+                        <span className="text-gray-600 truncate ml-2">
+                          {user.email}
+                        </span>
                       </div>
                     ))}
                     {validationResult.valid.length > 5 && (
@@ -338,19 +560,31 @@ const AddUserExcel: React.FC<CSVUploadModalProps> = ({ onClose }) => {
               {validationResult.invalid.length > 0 && (
                 <div>
                   <h3 className="text-sm font-semibold text-red-700 mb-1 flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />Invalid Users ({validationResult.invalid.length})
+                    <AlertCircle className="h-3 w-3" />
+                    Invalid Users ({validationResult.invalid.length})
                   </h3>
                   <div className="bg-red-50 rounded max-h-24 overflow-y-auto">
                     {validationResult.invalid.slice(0, 3).map((user, index) => (
-                      <div key={index} className="px-2 py-1 border-b border-red-200 last:border-b-0">
+                      <div
+                        key={index}
+                        className="px-2 py-1 border-b border-red-200 last:border-b-0"
+                      >
                         <div className="flex justify-between items-start text-xs">
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate">{user.name || 'No name'}</div>
-                            <div className="text-gray-600 truncate">{user.email || 'No email'}</div>
+                            <div className="font-medium truncate">
+                              {user.name || "No name"}
+                            </div>
+                            <div className="text-gray-600 truncate">
+                              {user.email || "No email"}
+                            </div>
                           </div>
-                          <div className="text-red-600 ml-2">Row {user.row}</div>
+                          <div className="text-red-600 ml-2">
+                            Row {user.row}
+                          </div>
                         </div>
-                        <div className="text-xs text-red-600 mt-0.5">{user.errors?.join(', ')}</div>
+                        <div className="text-xs text-red-600 mt-0.5">
+                          {user.errors?.join(", ")}
+                        </div>
                       </div>
                     ))}
                     {validationResult.invalid.length > 3 && (
@@ -364,12 +598,41 @@ const AddUserExcel: React.FC<CSVUploadModalProps> = ({ onClose }) => {
             </div>
           )}
 
-          {uploadStep === 'result' && (
+          {uploadStep === "result" && (
             <div className="text-center py-4">
               <CheckCircle className="h-10 w-10 text-green-500 mx-auto mb-2" />
-              <h3 className="text-lg font-semibold text-gray-800 mb-1">Success!</h3>
-              <p className="text-sm text-gray-600 mb-3">{validationResult?.valid.length} users created.</p>
-              <button onClick={() => { onClose(); window.location.reload(); }} className="px-4 py-2 bg-green-600 text-white rounded text-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-1">
+                Upload Summary
+              </h3>
+
+              <div className="text-sm text-gray-700 my-2">
+                ✅ {createdUsers.length} user(s) created:
+                <ul className="list-disc list-inside text-green-600">
+                  {createdUsers.map((user: any, index) => (
+                    <li key={index}>{user.email}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {skippedUsers.length > 0 && (
+                <div className="text-sm text-gray-700 my-2">
+                  ❌ {skippedUsers.length} user(s) skipped due to existing
+                  email:
+                  <ul className="list-disc list-inside text-red-600">
+                    {skippedUsers.map((user: any, index) => (
+                      <li key={index}>{user.email}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  onClose();
+                  window.location.reload();
+                }}
+                className="px-4 py-2 mt-3 bg-green-600 text-white rounded text-sm"
+              >
                 Continue
               </button>
             </div>
@@ -377,16 +640,26 @@ const AddUserExcel: React.FC<CSVUploadModalProps> = ({ onClose }) => {
         </div>
 
         {/* Action Footer */}
-        {uploadStep === 'preview' && (
+        {uploadStep === "preview" && (
           <div className="bg-gray-50 px-3 py-2 border-t flex gap-2 justify-between">
-            <button onClick={() => setUploadStep('upload')} className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-700">
+            <button
+              onClick={() => setUploadStep("upload")}
+              className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-700"
+            >
               Back
             </button>
             <div className="flex gap-2">
-              <button onClick={onClose} className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-700">
+              <button
+                onClick={onClose}
+                className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-700"
+              >
                 Cancel
               </button>
-              <button onClick={createUsersFromCSV} disabled={!validationResult?.valid.length || isLoading} className="px-3 py-1.5 bg-green-600 text-white rounded text-sm disabled:bg-gray-400 flex items-center gap-1">
+              <button
+                onClick={createUsersFromCSV}
+                disabled={!validationResult?.valid.length || isLoading}
+                className="px-3 py-1.5 bg-green-600 text-white rounded text-sm disabled:bg-gray-400 flex items-center gap-1"
+              >
                 {isLoading ? (
                   <>
                     <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent"></div>

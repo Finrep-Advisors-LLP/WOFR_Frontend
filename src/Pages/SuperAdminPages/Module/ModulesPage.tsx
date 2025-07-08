@@ -1,14 +1,19 @@
 
+
+
+
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Search, ChevronDown, X } from "lucide-react";
 import TableHeader from "../../../component/common/ui/Table/TableHeader";
 // import Toggle from "../../../component/common/ui/Toggle";
 import Pagination from "../../../component/common/ui/Table/Pagination";
-// import toast from "react-hot-toast";
+import toast from "react-hot-toast";
 import { useAuth } from "../../../hooks/useAuth";
 import axios from "../../../helper/axios";
+import Toggle from "../../../component/common/ui/Toggle";
 
 type Assignment = {
+  assignment_status: string;
   user_id: string;
   tenant_id: string | null;
   tenant_name: string | null;
@@ -17,6 +22,7 @@ type Assignment = {
   assigned_by: number;
   assignment_date: string;
   total_screen: number;
+  status: string;
   module_data: Array<{
     actions: any;
     screen_id: number;
@@ -40,6 +46,8 @@ type ModuleView = {
   tenant_name: string | null;
   assignment_date: string;
   total_screens: number;
+  user_id: string;
+  assignment_status: string;
 };
 
 type DropdownState = {
@@ -68,9 +76,9 @@ const ModulesPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeDropdown, setActiveDropdown] = useState<DropdownState>(null);
   const [totalItems, setTotalItems] = useState(0);
-  // const [toggleLoading, setToggleLoading] = useState<number | null>(null);
+  const [toggleLoading, setToggleLoading] = useState<number | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition | null>(null);
-  
+
   const itemsPerPage = 10;
 
   // Refs
@@ -89,11 +97,11 @@ const ModulesPage: React.FC = () => {
   const calculateOptimalDropdownPosition = useCallback(
     (triggerElement: HTMLButtonElement): DropdownPosition => {
       const triggerRect = triggerElement.getBoundingClientRect();
-      
+
       // Get viewport dimensions
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
-      
+
       // Responsive dropdown width based on screen size
       let dropdownWidth: number;
       if (viewportWidth < 480) { // Extra small mobile
@@ -109,7 +117,7 @@ const ModulesPage: React.FC = () => {
       } else { // Large desktop
         dropdownWidth = Math.min(360, viewportWidth - 64); // 32px padding on each side
       }
-      
+
       // Responsive max height based on screen size and viewport
       let maxDropdownHeight: number;
       if (viewportWidth < 480) { // Extra small mobile
@@ -123,21 +131,21 @@ const ModulesPage: React.FC = () => {
       } else { // Desktop
         maxDropdownHeight = Math.min(320, viewportHeight * 0.55);
       }
-      
+
       // Calculate available space with responsive padding
       const bottomPadding = viewportWidth < 640 ? 10 : viewportWidth < 1024 ? 16 : 20;
       const topPadding = viewportWidth < 640 ? 10 : viewportWidth < 1024 ? 16 : 20;
-      
+
       const spaceBelow = viewportHeight - triggerRect.bottom - bottomPadding;
       const spaceAbove = triggerRect.top - topPadding;
-      
+
       // Determine if dropdown should open upward
       const shouldOpenUpward = spaceBelow < 150 && spaceAbove > spaceBelow;
-      
+
       // Calculate vertical position and height
       let top: number;
       let maxHeight: number;
-      
+
       if (shouldOpenUpward) {
         const availableHeight = Math.min(spaceAbove, maxDropdownHeight);
         top = triggerRect.top - availableHeight - 8;
@@ -147,11 +155,11 @@ const ModulesPage: React.FC = () => {
         top = triggerRect.bottom + 8;
         maxHeight = availableHeight;
       }
-      
+
       // Calculate horizontal position with responsive logic
       let left = triggerRect.left;
       const sidePadding = viewportWidth < 480 ? 10 : viewportWidth < 640 ? 12 : viewportWidth < 1024 ? 16 : 20;
-      
+
       // Ensure dropdown doesn't overflow viewport horizontally
       if (left + dropdownWidth > viewportWidth - sidePadding) {
         left = viewportWidth - dropdownWidth - sidePadding;
@@ -159,12 +167,12 @@ const ModulesPage: React.FC = () => {
       if (left < sidePadding) {
         left = sidePadding;
       }
-      
+
       // For small screens, try to center the dropdown relative to the trigger
       if (viewportWidth < 768) {
         const triggerCenter = triggerRect.left + (triggerRect.width / 2);
         const dropdownCenter = triggerCenter - (dropdownWidth / 2);
-        
+
         // Only center if it fits within the viewport
         if (dropdownCenter >= sidePadding && dropdownCenter + dropdownWidth <= viewportWidth - sidePadding) {
           left = dropdownCenter;
@@ -195,7 +203,7 @@ const ModulesPage: React.FC = () => {
       if (!activeDropdown) return;
 
       const target = event.target as Node;
-      
+
       // Check if click is inside dropdown
       const isClickInsideDropdown = dropdownContentRef.current?.contains(target);
       if (isClickInsideDropdown) return;
@@ -233,13 +241,13 @@ const ModulesPage: React.FC = () => {
   // Enhanced scroll handler that prevents dropdown from closing when scrolling inside it
   const handleScroll = useCallback((event: Event) => {
     if (!activeDropdown) return;
-    
+
     const target = event.target as Element;
-    
+
     // Check if the scroll is happening inside the dropdown content
-    const isDropdownScroll = dropdownContentRef.current?.contains(target) || 
-                            target === dropdownContentRef.current;
-    
+    const isDropdownScroll = dropdownContentRef.current?.contains(target) ||
+      target === dropdownContentRef.current;
+
     // Only close dropdown if it's not scrolling inside the dropdown itself
     if (!isDropdownScroll) {
       closeDropdown();
@@ -257,7 +265,7 @@ const ModulesPage: React.FC = () => {
     window.addEventListener("resize", handleWindowResize);
     // Use capture phase to catch scroll events before they bubble
     document.addEventListener("scroll", handleScroll, true);
-    
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutsideDropdown);
       window.removeEventListener("resize", handleWindowResize);
@@ -275,7 +283,7 @@ const ModulesPage: React.FC = () => {
       });
 
       const response = await axios.get(
-        `api/v1/assigned-user-role-module-actions?${params}`
+        `/api/v1/user/assigned?${params}`
       );
 
       if (response.data.success) {
@@ -285,47 +293,35 @@ const ModulesPage: React.FC = () => {
         const actionsMap: Record<number, Set<string>> = {};
 
         assignments.forEach((assignment) => {
-          // Use only module_id as key to group all assignments for the same module
+          // Use assignment_status directly from the API response
+          const assignmentStatus = assignment.assignment_status || 'inactive';
+
           if (!moduleMap.has(assignment.module_id)) {
             moduleMap.set(assignment.module_id, {
               id: assignment.module_id,
               name: assignment.module_name,
               description: `${assignment.module_name} Module`,
-              enabled: true,
-              tenant_name: null, // Will be set to show multiple tenants if applicable
+              enabled: assignmentStatus === 'active',
+              tenant_name: assignment.tenant_name,
               assignment_date: assignment.assignment_date,
               total_screens: assignment.total_screen,
+              user_id: assignment.user_id,
+              assignment_status: assignmentStatus // Store the assignment_status from API
             });
             rolesMap[assignment.module_id] = new Set();
             actionsMap[assignment.module_id] = new Set();
-          } else {
-            // Update total screens to maximum value if multiple assignments
-            const existingModule = moduleMap.get(assignment.module_id)!;
-            existingModule.total_screens = Math.max(
-              existingModule.total_screens,
-              assignment.total_screen
-            );
-
-            // Update assignment date to most recent
-            if (
-              new Date(assignment.assignment_date) >
-              new Date(existingModule.assignment_date)
-            ) {
-              existingModule.assignment_date = assignment.assignment_date;
-            }
           }
 
-          // Collect unique roles and actions for this module across all assignments
+          // Process roles and actions
           assignment.module_data.forEach((moduleData) => {
             rolesMap[assignment.module_id].add(moduleData.role_name);
-
             moduleData.actions.forEach((action: { action_name: string }) => {
               actionsMap[assignment.module_id].add(action.action_name);
             });
           });
         });
 
-        // Convert Sets to Arrays
+        // Convert to arrays
         const finalRolesMap: Record<number, string[]> = {};
         const finalActionsMap: Record<number, string[]> = {};
 
@@ -342,6 +338,7 @@ const ModulesPage: React.FC = () => {
       }
     } catch (error) {
       console.error("Error fetching assigned modules:", error);
+      toast.error("Failed to load modules");
     } finally {
       setIsLoading(false);
     }
@@ -358,31 +355,68 @@ const ModulesPage: React.FC = () => {
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
   const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
 
-  // const handleToggleChange = async (moduleId: number) => {
-  //   setToggleLoading(moduleId);
-  //   try {
-  //     // TODO: Replace with actual API endpoint when available
-  //     // const response = await axios.patch(`api/v1/assigned-modules-status/${moduleId}`);
-      
-  //     // For now, just update the state
-  //     setModules((prev) =>
-  //       prev.map((mod) =>
-  //         mod.id === moduleId ? { ...mod, enabled: !mod.enabled } : mod
-  //       )
-  //     );
+  const handleToggleChange = async (moduleId: number, userId: string) => {
+    setToggleLoading(moduleId);
 
-  //     toast.success(
-  //       `Module status updated successfully`
-  //     );
-      
+    try {
+      const currentModule = modules.find(m => m.id === moduleId);
+      if (!currentModule) return;
 
-  //   } catch (error) {
-  //     console.error("Error toggling module status:", error);
-  //     toast.error("Failed to toggle module status");
-  //   } finally {
-  //     setToggleLoading(null);
-  //   }
-  // };
+      // Make the API call with query parameters
+      const response = await axios.patch(
+        `/api/v1/user/role-assignment/status?user_id=${userId}&module_id=${moduleId}`,
+        null, // No request body needed
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'accept': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        // Get the new assignment_status from the response
+        const newAssignmentStatus = response.data.data.assignment_status || response.data.data.new_status;
+
+        setModules(prev =>
+          prev.map(mod =>
+            mod.id === moduleId
+              ? {
+                ...mod,
+                enabled: newAssignmentStatus === 'active',
+                assignment_status: newAssignmentStatus
+              }
+              : mod
+          )
+        );
+        toast.success(response.data.message);
+      } else {
+        toast.error(response.data.message || "Failed to update status");
+      }
+    } catch (error: any) {
+      console.error("Toggle error:", error);
+
+      if (error.response) {
+        // Show server error message if available
+        toast.error(error.response.data?.message || "Update failed");
+      } else {
+        toast.error("Network error - please try again");
+      }
+
+      // Revert the UI change
+      setModules(prev =>
+        prev.map(mod =>
+          mod.id === moduleId
+            ? { ...mod, enabled: !mod.enabled } // Revert the toggle
+            : mod
+        )
+      );
+    } finally {
+      setToggleLoading(null);
+    }
+  };
+
+
 
   const handleDropdownToggle = (
     moduleId: number,
@@ -442,7 +476,7 @@ const ModulesPage: React.FC = () => {
         }}
       >
         {/* Dropdown Header */}
-        <div 
+        <div
           className={`flex items-center justify-between ${itemPadding} border-b border-gray-100 bg-gray-50 rounded-t-lg flex-shrink-0`}
           style={{ minHeight: `${headerHeight}px` }}
         >
@@ -459,9 +493,9 @@ const ModulesPage: React.FC = () => {
         </div>
 
         {/* Dropdown Content with proper scrolling */}
-        <div 
+        <div
           className="overflow-y-auto overflow-x-hidden"
-          style={{ 
+          style={{
             maxHeight: `${dropdownPosition.maxHeight - headerHeight}px`,
             // Prevent scroll events from bubbling up and ensure smooth scrolling
             overscrollBehavior: 'contain',
@@ -529,7 +563,7 @@ const ModulesPage: React.FC = () => {
         </div>
 
         {/* Modules Table Section */}
-        <div 
+        <div
           ref={tableContainerRef}
           className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden relative"
         >
@@ -551,17 +585,17 @@ const ModulesPage: React.FC = () => {
                   </TableHeader>
                   {/* <TableHeader className="min-w-[140px] sm:min-w-[180px] text-xs font-semibold text-gray-700 uppercase tracking-wide">
                     Roles
-                  </TableHeader>
+                  </TableHeader> */}
                   <TableHeader className="w-16 sm:w-20 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide">
                     Status
-                  </TableHeader> */}
+                  </TableHeader>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {modules.map((module, moduleIndex) => {
                   const selectedActions = moduleSelectedActions[module.id] || [];
                   // const selectedRoles = moduleSelectedRoles[module.id] || [];
-                  // const isCurrentModuleToggling = toggleLoading === module.id;
+                  const isCurrentModuleToggling = toggleLoading === module.id;
 
                   return (
                     <tr
@@ -640,12 +674,11 @@ const ModulesPage: React.FC = () => {
                             )}
                             <ChevronDown
                               size={14}
-                              className={`ml-1 sm:ml-2 transition-transform duration-200 flex-shrink-0 ${
-                                activeDropdown?.moduleId === module.id &&
+                              className={`ml-1 sm:ml-2 transition-transform duration-200 flex-shrink-0 ${activeDropdown?.moduleId === module.id &&
                                 activeDropdown?.type === "action"
-                                  ? "transform rotate-180"
-                                  : ""
-                              }`}
+                                ? "transform rotate-180"
+                                : ""
+                                }`}
                             />
                           </button>
                         </div>
@@ -701,20 +734,35 @@ const ModulesPage: React.FC = () => {
                       </td> */}
 
                       {/* Status Toggle */}
-                      {/* <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
-                        <div className="relative inline-block">
-                          <Toggle
-                            enabled={module.enabled}
-                            onChange={() => !isCurrentModuleToggling && handleToggleChange(module.id)}
-                          />
-                          
-                          {isCurrentModuleToggling && (
-                            <div className="absolute inset-0 bg-white bg-opacity-40 rounded-full flex items-center justify-center cursor-not-allowed">
-                              <div className="h-4 w-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                            </div>
-                          )}
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          {/* Status indicator */}
+                          {/* <div className={`w-2 h-2 rounded-full ${module.enabled ? 'bg-green-500' : 'bg-gray-400'
+                            }`} aria-hidden="true" /> */}
+
+                          {/* Status text - optional */}
+                          {/* <span className={`text-xs ${module.enabled ? 'text-green-600' : 'text-gray-500'
+                            }`}>
+                            {module.enabled ? 'Active' : 'Inactive'}
+                          </span> */}
+
+                          {/* Toggle with loading state */}
+                          <div className="relative">
+                            <Toggle
+                              enabled={module.enabled}
+                              onChange={() => !isCurrentModuleToggling && handleToggleChange(module.id, module.user_id)}
+                              aria-label={module.enabled ? 'Deactivate module' : 'Activate module'}
+                            />
+
+                            {isCurrentModuleToggling && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70 rounded-full">
+                                <div className="h-4 w-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </td> */}
+                      </td>
+
                     </tr>
                   );
                 })}

@@ -1,19 +1,25 @@
-import React from "react";
+
+import React, { useEffect, useState } from "react";
 import { AlertCircle } from "lucide-react";
-import { LeaseFormData } from "../../../../types";
+import { LeaseFormData, Organization } from "../../../../types";
 import axios from "../../../../helper/axios";
 import { useAuth } from "../../../../context/AuthContext";
+import { fetchOrganizations } from "../../../../hooks/organizationService";
 
 interface LeaseReviewSubmitProps {
   formData: LeaseFormData;
   onPrevious: () => void;
   onSubmit: () => void;
+  isEditMode?: boolean;
+  readOnly?: boolean;
 }
 
 const LeaseReviewSubmit: React.FC<LeaseReviewSubmitProps> = ({
   formData,
   onPrevious,
   onSubmit,
+  isEditMode = false,
+  readOnly = false,
 }) => {
   const formatCurrency = (value?: string | number): string => {
     if (value === null || value === undefined || value === "") return "$0.00";
@@ -22,6 +28,40 @@ const LeaseReviewSubmit: React.FC<LeaseReviewSubmitProps> = ({
       maximumFractionDigits: 2,
     })}`;
   };
+  
+  const [, setOrganizations] = useState<Organization[]>([]);
+  const [, setIsLoading] = useState(true);
+  const [tennet, setTennet] = useState("");
+  const [, setEditingOrganization] = useState<Organization | null>(null);
+  
+  console.log(formData, "formData");
+  const { authState } = useAuth();
+  
+  const loadOrganizations = async () => {
+    if (!authState.token) return;
+
+    setIsLoading(true);
+    try {
+      const result = await fetchOrganizations(authState.token, 1, 1);
+      
+      if (result.organizations.length > 0) {
+        setEditingOrganization(result.organizations[0]);
+      } else {
+        setEditingOrganization(null);
+      }
+      setOrganizations(result.organizations);
+      setTennet(result.organizations[0].tenant_id);
+      console.log(result.organizations, "result.organizations");
+    } catch (error) {
+      console.error("Failed to load organizations:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOrganizations();
+  }, [authState.token]);
 
   const displayValue = (
     value: any,
@@ -40,7 +80,6 @@ const LeaseReviewSubmit: React.FC<LeaseReviewSubmitProps> = ({
     return false;
   };
 
-  // Helper function to get unique departments from entity-department percentages
   const getUniqueDepartments = () => {
     if (!formData.entityDepartmentPercentages) return [];
 
@@ -57,74 +96,93 @@ const LeaseReviewSubmit: React.FC<LeaseReviewSubmitProps> = ({
       return { value: deptValue, label: deptValue };
     });
   };
-  const { authState } = useAuth();
 
-  const getAuthHeaders = () => ({
-    Authorization: `Bearer ${authState.token}`,
-    Accept: "application/json",
-  });
-
-
-
-const submitLeaseToAPI = async (formData:any) => {
-  const apiPayload = {
-    organization_id: "T00015", // Map from your form
-    lease_identifier: formData.propertyName || "string",
-    asset_group_id: parseInt(formData.propertyId) || 0,
-    department_id: parseInt(formData.department?.[0]) || 0, // First department if array
-    short_term_lease: formData.isShortTerm ? "yes" : "no",
-    low_value_lease: formData.isLowValue ? "yes" : "no",
-    lease_start_date: formData.startDate,
-    lease_end_date: formData.endDate,
-    lease_term_years: formData.duration?.years || 0,
-    lease_term_months: formData.duration?.months || 0,
-    lease_term_days: formData.duration?.days || 0,
-    custom_cashflows: formData.hasCashflow ? "yes" : "no",
-    monthly_lease_payment: parseFloat(formData.annualPayment) / 12 || 0, // Convert annual to monthly
-    incremental_borrowing_rate: parseFloat(formData.incrementalBorrowingRate) || 0,
-    payment_frequency: formData.paymentFrequency || "monthly",
-    payment_timing: formData.paymentTiming || "beginning",
-    payment_delay_months: parseInt(formData.paymentDelay) || 0,
-    initial_direct_costs: parseFloat(formData.initialDirectCosts) || 0,
-    termination_date: formData.endDate, // Using end date as termination date
-    status: "active"
-  };
-
-  try {
-    const response = await axios.post('api/v1/leases', apiPayload, {
-      // headers: {
-      //   'accept': 'application/json',
-      //   'Content-Type': 'application/json',
-      // }
-
-        headers: {
-            ...getAuthHeaders(),
-            "Content-Type": "application/json",
-          },
-      
-    });
-
-    return response.data;
-  } catch (error:any) {
-    console.error('Error submitting lease:', error);
-    if (error.response) {
-      // Server responded with error status
-      throw new Error(`API Error: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`);
-    } else if (error.request) {
-      // Request was made but no response received
-      throw new Error('Network error: No response from server');
-    } else {
-      // Something else happened
-      throw new Error(`Error: ${error.message}`);
+  // Updated API submission function
+  const submitLeaseToAPI = async (formData: any) => {
+    if (!tennet) {
+      throw new Error("Organization ID is required but not found in user context");
     }
-  }
+
+
+const apiPayload = {
+  organization_id: tennet,
+  lease_identifier: formData.propertyName || "",
+  asset_group_id: parseInt(formData.propertyId) || 13,
+  department_id: parseInt(formData.department?.[0]) || 25,
+  short_term_lease: formData.isShortTerm ? "yes" : "no",
+  low_value_lease: formData.isLowValue ? "yes" : "no",
+  lease_start_date: formData.startDate || "2025-01-01", // fallback valid ISO date
+  lease_end_date: formData.endDate || "2025-12-31",
+  lease_term_years: formData.duration?.years || 0,
+  lease_term_months: formData.duration?.months || 0,
+  lease_term_days: formData.duration?.days || 0,
+  custom_cashflows: formData.hasCashflow ? "yes" : "no",
+  monthly_lease_payment: parseFloat(formData.annualPayment) / 12 || 0,
+  incremental_borrowing_rate: parseFloat(formData.incrementalBorrowingRate) || 0,
+  payment_frequency: formData.paymentFrequency || "monthly",
+  payment_timing: formData.paymentTiming || "beginning",
+  payment_delay_months: parseInt(formData.paymentDelay) || 0,
+  initial_direct_costs: parseFloat(formData.initialDirectCosts) || 0,
+  termination_date: formData.endDate || "2025-12-31",
+  status: "active",
+
+  lease_custom_cashflows: formData.cashflowEntries
+    ?.filter((entry: any) => entry?.date)
+    .map((entry: any) => ({
+      cashflow_date: entry.date,
+      amount: parseFloat(entry.amount) || 0,
+      cashflow_type: entry.type || "fixed"
+    })) || [],
+
+  lease_entities: selectedEntities.map(entityId => ({
+    entity_id: parseInt(entityId) || 0,
+    department_id: parseInt(formData.department?.[0]) || 25,
+    allocation_percentage: parseFloat(formData.overallEntityPercentages?.[entityId]) || 0
+  })),
+
+  lease_security_deposits: formData.securityDeposits
+    ?.filter((deposit: any) => deposit.startDate && deposit.endDate)
+    .map((deposit: any) => ({
+      deposit_name: deposit.depositNumber || "Unnamed",
+      security_deposit_amount: parseFloat(deposit.amount) || 0,
+      sd_rate: parseFloat(deposit.rate) || 0,
+      sd_start_date: deposit.startDate,
+      sd_end_date: deposit.endDate,
+      deposit_type: deposit.remark || "general"
+    })) || [],
+
+  lease_rent_revisions: formData.rentRevisions
+    ?.filter((rev: any) => rev.revisionDate)
+    .map((rev: any) => ({
+      effective_from_date: rev.revisionDate,
+      revised_monthly_payment: parseFloat(rev.revisedPayment) || 0
+    })) || [],
+
+  lease_lessors: selectedLessors.map(lessorId => ({
+    lessor_id: parseInt(lessorId) || 0,
+    share_percentage: parseFloat(formData.lessorPercentages?.[lessorId]) || 0
+  }))
 };
 
 
+    console.log("API Payload:", apiPayload);
 
+    try {
+      const response = await axios.post('/api/api/leases', apiPayload, {
+        headers: {
+          'accept': 'application/json',
+          'Authorization': `Bearer ${authState.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error('Error submitting lease:', error);
+      console.error('Error response:', error.response?.data);
+      throw new Error(error.response?.data?.message || error.message || 'Failed to submit lease');
+    }
+  };
 
-
-  // Check if this is multi-entity mode
   const isMultiEntityMode = formData.hasMultiEntityAllocation;
   const selectedEntities = Array.isArray(formData.entityMaster)
     ? formData.entityMaster
@@ -137,26 +195,25 @@ const submitLeaseToAPI = async (formData:any) => {
     ? [formData.leaserMaster]
     : ([] as string[]);
 
-  // Updated validation logic: if cashflow exists, only check basic required fields
-  // If no cashflow, check all required fields
   const checkRequiredFields = (): boolean => {
     const hasCashflow =
       formData.hasCashflow &&
       formData.cashflowEntries &&
       formData.cashflowEntries.length > 0;
 
-    // Basic required fields that are always needed
     const basicRequiredFields = [formData.startDate, formData.endDate];
 
-    const basicFieldsValid = basicRequiredFields.every(
-      (field) => field !== undefined && field !== "" && field !== null
-    );
+    // const basicFieldsValid = basicRequiredFields.every(
+    //   (field) => field !== undefined && field !== "" && field !== null
+    // );
+    const basicFieldsValid = basicRequiredFields.every((field) => {
+  if (field instanceof Date) return !isNaN(field.getTime()); // Valid Date check
+  return field !== undefined && field !== "" && field !== null;
+});
 
     if (hasCashflow) {
-      // If we have cashflow data, only basic fields are required
       return basicFieldsValid;
     } else {
-      // If no cashflow, require payment information as well
       const paymentRequiredFields = [
         formData.annualPayment,
         formData.paymentFrequency,
@@ -172,13 +229,11 @@ const submitLeaseToAPI = async (formData:any) => {
 
   const isFormValid = checkRequiredFields();
 
-  // Check if we have cashflow data
   const hasCashflowData =
     formData.hasCashflow &&
     formData.cashflowEntries &&
     formData.cashflowEntries.length > 0;
 
-  // Check if basic lease information has any data
   const hasBasicLeaseInfo =
     !isEmpty(formData.propertyId) ||
     !isEmpty(formData.propertyName) ||
@@ -186,13 +241,11 @@ const submitLeaseToAPI = async (formData:any) => {
     !isEmpty(formData.endDate) ||
     formData.duration;
 
-  // Check if entity & lessor information has any data
   const hasEntityLessorInfo =
     selectedEntities.length > 0 ||
     selectedLessors.length > 0 ||
     (!isEmpty(formData.department) && formData.department.length > 0);
 
-  // Check if financial details have any data
   const hasFinancialDetails =
     !isEmpty(formData.annualPayment) ||
     !isEmpty(formData.incrementalBorrowingRate) ||
@@ -201,27 +254,22 @@ const submitLeaseToAPI = async (formData:any) => {
     !isEmpty(formData.paymentTiming) ||
     !isEmpty(formData.paymentDelay);
 
-  // Check if multi-entity allocation has data
   const hasMultiEntityAllocation =
     isMultiEntityMode &&
     formData.entityDepartmentPercentages &&
     Object.keys(formData.entityDepartmentPercentages).length > 0;
 
-  // Check if lessor allocation has data
   const hasLessorAllocation =
     isMultiEntityMode &&
     formData.lessorPercentages &&
     Object.keys(formData.lessorPercentages).length > 0;
 
-  // Check if rent revisions have data
   const hasRentRevisions =
     formData.rentRevisions && formData.rentRevisions.length > 0;
 
-  // Check if security deposits have data
   const hasSecurityDeposits =
     formData.securityDeposits && formData.securityDeposits.length > 0;
 
-  // Calculate overall entity grand total
   const getOverallEntityGrandTotal = (): number => {
     if (!formData.overallEntityPercentages) return 0;
     return Object.values(formData.overallEntityPercentages).reduce(
@@ -234,14 +282,33 @@ const submitLeaseToAPI = async (formData:any) => {
     <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-lg shadow-sm mx-auto">
       <div className="mb-8">
         <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900">
-          Review & Submit Lease
+          {isEditMode ? "Review Changes" : "Review & Submit Lease"}
         </h2>
         <p className="mt-2 text-sm sm:text-base text-gray-600">
-          Please review all lease details before submission
+          {isEditMode ? "Review your changes before saving" : "Please review all lease details before submission"}
         </p>
+        {tennet && (
+          <p className="mt-1 text-xs text-gray-500">
+            Organization ID: {tennet}
+          </p>
+        )}
       </div>
 
-      {!isFormValid && (
+      {!tennet && !readOnly && (
+        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-md flex items-start">
+          <AlertCircle className="text-red-500 mr-3 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-medium text-red-800">
+              Missing Organization Information
+            </p>
+            <p className="text-red-700 mt-1 text-sm">
+              Organization ID is required but not found.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!isFormValid && !readOnly && (
         <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-md flex items-start">
           <AlertCircle className="text-red-500 mr-3 mt-0.5 flex-shrink-0" />
           <div>
@@ -258,7 +325,6 @@ const submitLeaseToAPI = async (formData:any) => {
       )}
 
       <div className="space-y-8">
-        {/* Lease Basic Information - Only show if has data */}
         {hasBasicLeaseInfo && (
           <section className="bg-gray-50 rounded-xl p-4 sm:p-6 border border-gray-200">
             <div className="flex items-center mb-4">
@@ -353,7 +419,6 @@ const submitLeaseToAPI = async (formData:any) => {
           </section>
         )}
 
-        {/* Entity & Lessor Information - Only show if has data */}
         {hasEntityLessorInfo && (
           <section className="bg-gray-50 rounded-xl p-4 sm:p-6 border border-gray-200">
             <div className="flex items-center mb-4">
@@ -405,35 +470,33 @@ const submitLeaseToAPI = async (formData:any) => {
                 )}
               </div>
 
-              {/* Single Entity Department Display */}
               {!isMultiEntityMode && 
-  formData.department && 
-  (Array.isArray(formData.department) ? formData.department.length > 0 : formData.department) && ( 
-    <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-100 shadow-xs"> 
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider"> 
-        Department(s) 
-      </p> 
-      <div className="mt-1"> 
-        <div className="flex flex-wrap gap-2"> 
-          {(Array.isArray(formData.department) ? formData.department : [formData.department]).map( 
-            (dept: string, index: number) => ( 
-              <span 
-                key={dept || index} 
-                className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full" 
-              > 
-                {dept} 
-              </span> 
-            ) 
-          )} 
-        </div> 
-      </div> 
-    </div> 
-  )}
+                formData.department && 
+                (Array.isArray(formData.department) ? formData.department.length > 0 : formData.department) && ( 
+                  <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-100 shadow-xs"> 
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider"> 
+                      Department(s) 
+                    </p> 
+                    <div className="mt-1"> 
+                      <div className="flex flex-wrap gap-2"> 
+                        {(Array.isArray(formData.department) ? formData.department : [formData.department]).map( 
+                          (dept: string, index: number) => ( 
+                            <span 
+                              key={dept || index} 
+                              className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full" 
+                            > 
+                              {dept} 
+                            </span> 
+                          ) 
+                        )} 
+                      </div> 
+                    </div> 
+                  </div> 
+                )}
             </div>
           </section>
         )}
 
-        {/* Multi-Entity Department Allocation Matrix - Only show if has data */}
         {hasMultiEntityAllocation && (
           <section className="bg-gray-50 rounded-xl p-4 sm:p-6 border border-gray-200">
             <div className="flex items-center mb-4">
@@ -479,11 +542,11 @@ const submitLeaseToAPI = async (formData:any) => {
                   {selectedEntities.map((entityId, entityIndex) => {
                     const entityPercentages =
                       formData.entityDepartmentPercentages?.[entityId] || {};
-                      const entityTotal = Object.values(entityPercentages).reduce(
-                        (sum: number, val: any) => sum + (Number(val) || 0),
-                        0
-                      );
-                      
+                    const entityTotal = Object.values(entityPercentages).reduce(
+                      (sum: number, val: any) => sum + (Number(val) || 0),
+                      0
+                    );
+                    
                     const overallPercentage =
                       formData.overallEntityPercentages?.[entityId] || 0;
 
@@ -557,7 +620,6 @@ const submitLeaseToAPI = async (formData:any) => {
                             : "text-red-600"
                         }`}
                       >
-                        {/* {getOverallEntityGrandTotal().toFixed(2)}% */}
                       </span>
                     </td>
                   </tr>
@@ -567,7 +629,6 @@ const submitLeaseToAPI = async (formData:any) => {
           </section>
         )}
 
-        {/* Multi-Entity Lessor Allocation - Only show if has data */}
         {hasLessorAllocation && (
           <section className="bg-gray-50 rounded-xl p-4 sm:p-6 border border-gray-200">
             <div className="flex items-center mb-4">
@@ -595,10 +656,10 @@ const submitLeaseToAPI = async (formData:any) => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                {selectedLessors.map((lessorId: string, index: number) => {
-  const percentage = Number(
-    (formData.lessorPercentages as any)?.[lessorId] || 0
-  );
+                  {selectedLessors.map((lessorId: string, index: number) => {
+                    const percentage = Number(
+                      (formData.lessorPercentages as any)?.[lessorId] || 0
+                    );
                     return (
                       <tr
                         key={lessorId || `lessor-${index}`}
@@ -619,7 +680,6 @@ const submitLeaseToAPI = async (formData:any) => {
           </section>
         )}
 
-        {/* Financial Details - Only show if not using cashflow or if financial data exists */}
         {!hasCashflowData && hasFinancialDetails && (
           <section className="bg-gray-50 rounded-xl p-4 sm:p-6 border border-gray-200">
             <div className="flex items-center mb-4">
@@ -698,7 +758,6 @@ const submitLeaseToAPI = async (formData:any) => {
           </section>
         )}
 
-        {/* Custom Cashflow - Only show if has data */}
         {hasCashflowData && (
           <section className="bg-gray-50 rounded-xl p-4 sm:p-6 border border-gray-200">
             <div className="flex items-center mb-4">
@@ -754,7 +813,6 @@ const submitLeaseToAPI = async (formData:any) => {
           </section>
         )}
 
-        {/* Rent Revisions & Initial Costs - Only show if has data */}
         {hasRentRevisions && (
           <section className="bg-gray-50 rounded-xl p-4 sm:p-6 border border-gray-200">
             <div className="flex items-center mb-4">
@@ -812,7 +870,6 @@ const submitLeaseToAPI = async (formData:any) => {
           </section>
         )}
 
-        {/* Security Deposits - Only show if has data */}
         {hasSecurityDeposits && (
           <section className="bg-gray-50 rounded-xl p-4 sm:p-6 border border-gray-200">
             <div className="flex items-center mb-4">
@@ -889,55 +946,51 @@ const submitLeaseToAPI = async (formData:any) => {
         )}
       </div>
 
-      <div className="mt-8 flex justify-between">
-        <button
-          type="button"
-          onClick={onPrevious}
-          className="bg-white cursor-pointer text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
-        >
-          Previous
-        </button>
+      {!readOnly && (
+        <div className="mt-8 flex justify-between">
+          <button
+            type="button"
+            onClick={onPrevious}
+            className="bg-white cursor-pointer text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Previous
+          </button>
 
-        <button
-          type="button"
-          className="bg-white cursor-pointer text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
-        >
-          Save
-        </button>
+          <div className="flex gap-4">
+            <button
+              type="button"
+              className="bg-white cursor-pointer text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              Save
+            </button>
 
-        {/* <button
-          type="button"
-          onClick={onSubmit}
-          disabled={!isFormValid}
-          className={`px-4 py-2 cursor-pointer rounded-md ${
-            isFormValid
-              ? "bg-[#008F98] text-white hover:bg-[#007A82]"
-              : "bg-gray-300 text-gray-500 cursor-not-allowed"
-          } transition-colors`}
-        >
-          Submit Lease
-        </button> */}
-        <button
-  type="button"
-  onClick={async () => {
-    try {
-      await submitLeaseToAPI(formData);
-      alert('Lease submitted successfully!');
-      onSubmit(); // Call original onSubmit if needed
-    } catch (error) {
-      alert('Error submitting lease. Please try again.');
-    }
-  }}
-  disabled={!isFormValid}
-  className={`px-4 py-2 cursor-pointer rounded-md ${
-    isFormValid
-      ? "bg-[#008F98] text-white hover:bg-[#007A82]"
-      : "bg-gray-300 text-gray-500 cursor-not-allowed"
-  } transition-colors`}
->
-  Submit Lease
-</button>
-      </div>
+            <button
+              type="button"
+              onClick={async () => {
+                if (isEditMode) {
+                  onSubmit();
+                } else {
+                  try {
+                    await submitLeaseToAPI(formData);
+                    alert('Lease submitted successfully!');
+                    onSubmit();
+                  } catch (error) {
+                    alert('Error submitting lease. Please try again.');
+                  }
+                }
+              }}
+              disabled={!isFormValid}
+              className={`px-4 py-2 cursor-pointer rounded-md ${
+                isFormValid
+                  ? "bg-[#008F98] text-white hover:bg-[#007A82]"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              } transition-colors`}
+            >
+              {isEditMode ? "Save Changes" : "Submit Lease"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

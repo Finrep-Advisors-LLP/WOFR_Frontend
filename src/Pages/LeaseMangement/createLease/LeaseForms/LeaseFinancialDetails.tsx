@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Trash2, Plus } from "lucide-react";
-import { LeaseFormData, RentRevision } from "../../../../types";
 import { v4 as uuidv4 } from "uuid";
 import { LeaseFormLabels } from "./LeaseFormLabel";
+import { LeaseFormData, RentRevision } from "../../../../types";
 
 interface LeaseFinancialDetailsProps {
   formData: LeaseFormData;
@@ -10,6 +10,8 @@ interface LeaseFinancialDetailsProps {
   onPrevious: () => void;
   onNext: () => void;
   isSaving?: boolean;
+  readOnly?: boolean;
+  disabled?: boolean;
 }
 
 interface FormErrors {
@@ -25,6 +27,8 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
   updateFormData,
   onPrevious,
   onNext,
+  readOnly = false,
+  disabled = false,
 }) => {
   const [showExcelFormat, setShowExcelFormat] = useState(
     (formData.rentRevisions && formData.rentRevisions.length > 1) || false
@@ -43,12 +47,16 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
   const [errors, setErrors] = useState<FormErrors>({});
 
   useEffect(() => {
-    updateFormData({ rentRevisions });
-  }, [rentRevisions, updateFormData]);
+    if (!readOnly) {
+      updateFormData({ rentRevisions });
+    }
+  }, [rentRevisions, readOnly]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
+    if (readOnly) return;
+    
     const { name, value } = e.target;
     updateFormData({ [name]: value });
     // Clear error when user starts typing
@@ -75,6 +83,8 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
     field: keyof RentRevision,
     value: string
   ) => {
+    if (readOnly) return;
+    
     const revisionIndex = rentRevisions.findIndex(rev => rev.id === id);
     
     setRentRevisions((prevRevisions) => {
@@ -99,6 +109,8 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
   };
 
   const addRentRevision = () => {
+    if (readOnly) return;
+    
     if (!showExcelFormat) {
       setShowExcelFormat(true);
     }
@@ -113,6 +125,8 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
   };
 
   const removeRentRevision = (id: string) => {
+    if (readOnly) return;
+    
     setRentRevisions((prev) => {
       const newRevisions = prev.filter((revision) => revision.id !== id);
       if (newRevisions.length <= 1) {
@@ -123,6 +137,8 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
   };
 
   const validateForm = () => {
+    if (readOnly) return true;
+    
     const newErrors: FormErrors = {};
 
     if (!formData.annualPayment) {
@@ -142,7 +158,6 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
     }
 
     // Only validate rent revisions if they have been partially filled
-    // Check if any revision has either date OR payment filled (partial entry)
     const hasPartialRevision = rentRevisions.some(
       (revision) => (revision.revisionDate && !revision.revisedPayment) || 
                    (!revision.revisionDate && revision.revisedPayment)
@@ -172,7 +187,7 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
   };
 
   const handleNext = () => {
-    if (validateForm()) {
+    if (readOnly || validateForm()) {
       onNext();
     }
   };
@@ -199,12 +214,16 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
               id="annualPayment"
               name="annualPayment"
               className={`w-full rounded-md border ${errors.annualPayment ? "border-red-300" : "border-gray-300"
-                } pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                } pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                disabled ? "bg-gray-100 cursor-not-allowed" : ""
+              }`}
               placeholder="0.00"
               step="0.01"
               value={formData.annualPayment || ""}
               onChange={handleInputChange}
               min={0}
+              disabled={disabled}
+              readOnly={readOnly}
               onKeyDown={(e) => {
                 if (e.key === "-" || e.key === "e") {
                   e.preventDefault();
@@ -230,12 +249,16 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
               id="incrementalBorrowingRate"
               name="incrementalBorrowingRate"
               className={`w-full rounded-md border ${errors.incrementalBorrowingRate ? "border-red-300" : "border-gray-300"
-                } pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                } pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                disabled ? "bg-gray-100 cursor-not-allowed" : ""
+              }`}
               placeholder="0.00"
               step="0.01"
               value={formData.incrementalBorrowingRate || ""}
               onChange={handleInputChange}
               min={0}
+              disabled={disabled}
+              readOnly={readOnly}
               onKeyDown={(e) => {
                 if (e.key === "-" || e.key === "e") {
                   e.preventDefault();
@@ -265,9 +288,12 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
             id="paymentFrequency"
             name="paymentFrequency"
             className={`w-full rounded-md border ${errors.paymentFrequency ? "border-red-300" : "border-gray-300"
-              } px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+              } px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              disabled ? "bg-gray-100 cursor-not-allowed" : ""
+            }`}
             value={formData.paymentFrequency || ""}
             onChange={handleInputChange}
+            disabled={disabled}
           >
             <option value="">Select frequency</option>
             <option value="monthly">Monthly</option>
@@ -291,9 +317,12 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
             id="paymentTiming"
             name="paymentTiming"
             className={`w-full rounded-md border ${errors.paymentTiming ? "border-red-300" : "border-gray-300"
-              } px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+              } px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              disabled ? "bg-gray-100 cursor-not-allowed" : ""
+            }`}
             value={formData.paymentTiming || ""}
             onChange={handleInputChange}
+            disabled={disabled}
           >
             <option value="">Select timing</option>
             <option value="beginning">Beginning of period</option>
@@ -315,7 +344,9 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
             type="number"
             id="paymentDelay"
             name="paymentDelay"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={`w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              disabled ? "bg-gray-100 cursor-not-allowed" : ""
+            }`}
             placeholder="0"
             min={0}
             onKeyDown={(e) => {
@@ -325,6 +356,8 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
             }}
             value={formData.paymentDelay || ""}
             onChange={handleInputChange}
+            disabled={disabled}
+            readOnly={readOnly}
           />
         </div>
       </div>
@@ -339,14 +372,16 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
               Optional - Fill only if you have planned rent increases
             </p>
           </div>
-          <button
-            type="button"
-            onClick={addRentRevision}
-            className="bg-[#008F98] text-white px-4 py-2 rounded-md hover:bg-[#007a82] transition-colors flex items-center gap-2"
-          >
-            <Plus size={16} />
-            Add
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={addRentRevision}
+              className="bg-[#008F98] text-white px-4 py-2 rounded-md hover:bg-[#007a82] transition-colors flex items-center gap-2"
+            >
+              <Plus size={16} />
+              Add
+            </button>
+          )}
         </div>
 
         {/* Initial Direct Costs */}
@@ -365,7 +400,9 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
               type="number"
               id="initialDirectCosts"
               name="initialDirectCosts"
-              className="w-full rounded-md border border-gray-300 pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full rounded-md border border-gray-300 pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                disabled ? "bg-gray-100 cursor-not-allowed" : ""
+              }`}
               placeholder="0.00"
               step="0.01"
               min={0}
@@ -376,6 +413,8 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
               }}
               value={formData.initialDirectCosts || ""}
               onChange={handleInputChange}
+              disabled={disabled}
+              readOnly={readOnly}
             />
           </div>
         </div>
@@ -404,9 +443,11 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
                     type="date"
                     id={`revisionDate-${revision.id}`}
                     className={`w-full rounded-md border ${errors.rentRevisions ? "border-red-300" : "border-gray-300"
-                      } px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      } px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      disabled ? "bg-gray-100 cursor-not-allowed" : ""
+                    }`}
                     value={revision.revisionDate}
-                    onFocus={(e) => e.target.showPicker && e.target.showPicker()}
+                    onFocus={(e) => !disabled && e.target.showPicker && e.target.showPicker()}
                     onChange={(e) =>
                       handleRentRevisionChange(
                         revision.id,
@@ -414,6 +455,8 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
                         e.target.value
                       )
                     }
+                    disabled={disabled}
+                    readOnly={readOnly}
                   />
                 </div>
 
@@ -432,7 +475,9 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
                       type="number"
                       id={`revisedPayment-${revision.id}`}
                       className={`w-full rounded-md border ${errors.rentRevisions ? "border-red-300" : "border-gray-300"
-                        } pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                        } pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        disabled ? "bg-gray-100 cursor-not-allowed" : ""
+                      }`}
                       placeholder="0.00"
                       step="0.01"
                       value={revision.revisedPayment}
@@ -444,6 +489,8 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
                         )
                       }
                       min={0}
+                      disabled={disabled}
+                      readOnly={readOnly}
                       onKeyDown={(e) => {
                         if (e.key === "-" || e.key === "e") {
                           e.preventDefault();
@@ -471,9 +518,11 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
                   <th className="border border-gray-300 px-4 py-3 text-left text-sm font-medium text-gray-700">
                     Revised Monthly Lease Payment ($)
                   </th>
-                  <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium text-gray-700">
-                    Actions
-                  </th>
+                  {!readOnly && (
+                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium text-gray-700">
+                      Actions
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -485,8 +534,9 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
                     <td className="border border-gray-300 p-0">
                       <input
                         type="date"
-                        className={`w-full border-0 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:ring-inset ${(!revision.revisionDate && revision.revisedPayment && errors.rentRevisions) ? "bg-red-50" : ""
-                          }`}
+                        className={`w-full border-0 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
+                          (!revision.revisionDate && revision.revisedPayment && errors.rentRevisions) ? "bg-red-50" : ""
+                        } ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
                         value={revision.revisionDate}
                         min={getMinDateForRevision(index)}
                         onChange={(e) =>
@@ -496,13 +546,16 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
                             e.target.value
                           )
                         }
+                        disabled={disabled}
+                        readOnly={readOnly}
                       />
                     </td>
                     <td className="border border-gray-300 p-0">
                       <input
                         type="number"
-                        className={`w-full border-0 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:ring-inset ${(!revision.revisedPayment && revision.revisionDate && errors.rentRevisions) ? "bg-red-50" : ""
-                          }`}
+                        className={`w-full border-0 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
+                          (!revision.revisedPayment && revision.revisionDate && errors.rentRevisions) ? "bg-red-50" : ""
+                        } ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
                         placeholder="0.00"
                         step="0.01"
                         value={revision.revisedPayment}
@@ -514,6 +567,8 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
                           )
                         }
                         min={0}
+                        disabled={disabled}
+                        readOnly={readOnly}
                         onKeyDown={(e) => {
                           if (e.key === "-" || e.key === "e") {
                             e.preventDefault();
@@ -521,20 +576,22 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
                         }}
                       />
                     </td>
-                    <td className="border border-gray-300 px-4 py-2 text-center">
-                      <div className="flex justify-center gap-2">
-                        {rentRevisions.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeRentRevision(revision.id)}
-                            className="p-1 text-red-600 hover:text-red-800 focus:outline-none"
-                            aria-label="Delete row"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
+                    {!readOnly && (
+                      <td className="border border-gray-300 px-4 py-2 text-center">
+                        <div className="flex justify-center gap-2">
+                          {rentRevisions.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeRentRevision(revision.id)}
+                              className="p-1 text-red-600 hover:text-red-800 focus:outline-none"
+                              aria-label="Delete row"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -543,30 +600,53 @@ const LeaseFinancialDetails: React.FC<LeaseFinancialDetailsProps> = ({
         )}
       </div>
 
-      <div className="mt-8 flex justify-between">
-        <button
-          type="button"
-          onClick={onPrevious}
-          className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
-        >
-          Previous
-        </button>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            Save
-          </button>
-          <button
-            type="button"
-            onClick={handleNext}
-            className="bg-[#008F98] text-white px-4 py-2 rounded-md hover:bg-[#007A82] transition-colors"
-          >
-            Next
-          </button>
-        </div>
-      </div>
+{!readOnly && (
+  <div className="mt-8 flex justify-between">
+    <button
+      type="button"
+      onClick={onPrevious}
+      className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
+    >
+      Previous
+    </button>
+    <div className="flex gap-2">
+      <button
+        type="button"
+        className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
+      >
+        Save
+      </button>
+      <button
+        type="button"
+        onClick={handleNext}
+        className="bg-[#008F98] text-white px-4 py-2 rounded-md hover:bg-[#007A82] transition-colors"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+)}
+
+{/* READ-ONLY MODE NAVIGATION */}
+{readOnly && (
+  <div className="mt-8 flex justify-between">
+    <button
+      type="button"
+      onClick={onPrevious}
+      className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
+    >
+      Previous
+    </button>
+    <button
+      type="button"
+      onClick={onNext}
+      className="bg-[#008F98] text-white px-4 py-2 rounded-md hover:bg-[#007A82] transition-colors"
+    >
+      Next
+    </button>
+  </div>
+)}
+
     </div>
   );
 };

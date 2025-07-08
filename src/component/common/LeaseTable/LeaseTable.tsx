@@ -1,5 +1,6 @@
 import React from "react";
-import {  FileText } from "lucide-react";
+import { FileText, Eye } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Lease } from "../../../types";
 
 interface LeaseTableProps {
@@ -56,9 +57,9 @@ const LeaseTable: React.FC<LeaseTableProps> = ({ leases, loading = false }) => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 PERIOD
               </th>
-              {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ROLES
-              </th> */}
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                STATUS
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 ACTION
               </th>
@@ -89,15 +90,26 @@ const LeaseTable: React.FC<LeaseTableProps> = ({ leases, loading = false }) => {
                   <br />
                   {lease.endDate}
                 </td>
-                {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <button className="text-gray-700 flex items-center">
-                    Roles <ChevronDown size={16} className="ml-1" />
-                  </button>
-                </td> */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    lease.status === 'Active' ? 'bg-green-100 text-green-800' :
+                    lease.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                    lease.status === 'Draft' ? 'bg-gray-100 text-gray-800' :
+                    lease.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                    lease.status === 'Expired' ? 'bg-orange-100 text-orange-800' :
+                    'bg-blue-100 text-blue-800'
+                  }`}>
+                    {lease.status}
+                  </span>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button className="text-blue-600 hover:text-blue-800">
-                    Action
-                  </button>
+                  <Link
+                    to={`/dashboard/lease/view/${lease.id}`}
+                    className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                  >
+                    <Eye size={16} />
+                    View
+                  </Link>
                 </td>
               </tr>
             ))}

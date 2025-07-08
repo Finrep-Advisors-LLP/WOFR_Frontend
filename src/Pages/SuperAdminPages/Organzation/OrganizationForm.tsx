@@ -14,7 +14,7 @@ interface OrganizationFormProps {
   initialData: Organization | null;
   isEditting: boolean;
   setIsEditting: (isEditting: boolean) => void;
-  mode : "create" | "edit";
+  mode: "create" | "edit";
 }
 
 interface FormData {
@@ -286,7 +286,7 @@ const OrganizationForm = ({
           {/* Date of Incorporation */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">
-              Date of Incorporation 
+              Date of Incorporation
             </label>
             <input
               type="date"
@@ -303,25 +303,14 @@ const OrganizationForm = ({
             )}
           </div>
 
-          {/* Tax ID */}
-          {/* <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
-              Registration / Tax ID
-            </label>
-            <input
-              {...register("registration_tax_id")}
-              className="w-full px-4 py-3 bg-gray-100 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
-              placeholder="Enter your tax ID (optional)"
-            />
-          </div> */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">
               Registration / Tax ID
             </label>
             <input
               {...register("registration_tax_id", {
-                // required: "Registration / Tax ID is required",
                 validate: (value) => {
+                  if (!value) return true;
                   const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
                   const gstinRegex =
                     /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
@@ -484,4 +473,4 @@ const OrganizationForm = ({
   );
 };
 
-export default OrganizationForm;
+export default OrganizationForm

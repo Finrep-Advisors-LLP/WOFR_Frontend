@@ -181,7 +181,7 @@ const ExternalOrganizations: React.FC<ExternalOrganizationUserProps> = ({
                 Accept: "application/json",
               },
             }),
-            axios.get("api/v1/user-role-assignments", {
+            axios.get("api/v1/user/role-assignments", {
               headers: {
                 Authorization: `Bearer ${token}`,
                 Accept: "application/json",
@@ -260,7 +260,7 @@ const ExternalOrganizations: React.FC<ExternalOrganizationUserProps> = ({
 
       if (newModules.length > 0) {
         await axios.post(
-          "api/v1/assign-user-role-module-actions",
+          "api/v1/user/assign",
           {
             user_id: users.find((u) => u.id === userId)?.user_id,
             module_ids: newModules.map((id) => Number(id)),

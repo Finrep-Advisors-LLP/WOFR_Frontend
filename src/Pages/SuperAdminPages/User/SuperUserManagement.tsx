@@ -1,5 +1,4 @@
 
-
 import React, { useEffect, useState, useRef, useCallback } from "react";
 // import { ChevronDown } from "lucide-react";
 import { useAuth } from "../../../hooks/useAuth";
@@ -8,6 +7,8 @@ import TableHeader from "../../../component/common/ui/Table/TableHeader";
 import Pagination from "../../../component/common/ui/Table/Pagination";
 import { ChevronDown } from "lucide-react";
 import Assignuser from "./NewUser/AssignUser";
+import Toggle from "../../../component/common/ui/Toggle";
+import toast from "react-hot-toast";
 
 interface UserManagementProps {
   isReadOnly: boolean;
@@ -53,11 +54,18 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
   const [itemsPerPage] = useState(10);
   const [totalUsers, setTotalUsers] = useState(0);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [adminName, setAdminName] = useState("")
   const [assignedRoles, setAssignedRoles] = useState<AssignedRole[]>([]);
   const [expandedDropdown, setExpandedDropdown] = useState<{
     id: string;
     type: string;
   } | null>(null);
+
+  // Status toggle states
+  const [userStatusMap, setUserStatusMap] = useState<Record<string, string>>({});
+  const [togglingUsers, setTogglingUsers] = useState<Set<string>>(new Set());
+
+  const [superAdmin, setSuperAdmin] = useState<User | null>(null);
 
   // Refs for smart positioning
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -80,6 +88,7 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
     tenant_user_id?: string;
     tenant_name?: string;
     created_at?: string;
+    status?: string;
   };
   const [newUsers, setNewUsers] = useState<User[]>([]);
 
@@ -106,6 +115,61 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
   }, []);
 
 
+
+  const toggleUserStatus = async (tenantUserId: string) => {
+    if (togglingUsers.has(tenantUserId)) {
+      return; // Prevent multiple simultaneous requests
+    }
+
+    try {
+      setTogglingUsers(prev => new Set([...prev, tenantUserId]));
+
+      const response = await axios.patch(
+        `/api/v1/tenant/user/status?tenant_user_id=${tenantUserId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      if (response.data && response.data.data) {
+        // Update the user status in the local state
+        const updatedUser = response.data.data;
+
+        // Update userStatusMap
+        const newStatusMap = { ...userStatusMap };
+        if (updatedUser.tenant_user_id) {
+          newStatusMap[updatedUser.tenant_user_id] = updatedUser.new_status || 'inactive';
+        }
+        setUserStatusMap(newStatusMap);
+
+        // Update the users list
+        setNewUsers(prevUsers =>
+          prevUsers.map(user => {
+            return user.tenant_user_id === updatedUser.tenant_user_id
+              ? { ...user, status: updatedUser.new_status }
+              : user;
+          })
+        );
+        console.log(response.data.message);
+
+        // Show success toast
+        toast.success(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error toggling user status:", error);
+      toast.error("Failed to update user status");
+    } finally {
+      setTogglingUsers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(tenantUserId);
+        return newSet;
+      });
+    }
+  };
   // Close dropdown on scroll
   useEffect(() => {
     const handleScroll = () => {
@@ -147,13 +211,13 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [expandedDropdown]);
 
-  // Fetch user data with search and pagination
+ 
   const fetchUserData = async (page: number = 1, search: string = "") => {
     try {
       setLoading(true);
       setError(null);
 
-      let url = `api/v1/tenant-user?page=${page}&limit=${itemsPerPage}&sort_by=created_at&sort_order=asc`;
+      let url = `api/v1/tenant/users?page=${page}&limit=${itemsPerPage}&sort_by=created_at&sort_order=asc`;
 
       if (search) {
         url += `&search=${encodeURIComponent(search)}`;
@@ -165,11 +229,38 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
           Accept: "application/json",
         },
       });
+      console.log(response, "abc");
       const usersData = response.data?.data?.tenant_users || [];
       const totalCount = response.data?.meta?.total_items || 0;
+      // Create super admin entry
+      if (page === 1 && !searchTerm) {
+        const superAdminUser: User = {
+          name: response.data.data.super_admin,
+          email: response.data.data.super_admin_email,
 
+        };
+        setSuperAdmin(superAdminUser);
+        setAdminName(superAdminUser.name);
+      }
       setNewUsers(usersData);
+
+      console.log(setNewUsers);
       setTotalUsers(totalCount);
+      // Initialize user status map
+
+      const statusMap: Record<string, string> = {};
+
+      usersData.forEach((user: User) => {
+
+        if (user.tenant_user_id) {
+
+          statusMap[user.tenant_user_id] = user.status || 'inactive';
+
+        }
+
+      });
+
+      setUserStatusMap(statusMap);
     } catch (error) {
       console.error("Error fetching user data:", error);
       setError("Failed to fetch users");
@@ -289,8 +380,8 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
           <ChevronDown
             size={16}
             className={`ml-2 transition-transform duration-200 ${expandedDropdown?.id === userId && expandedDropdown?.type === "roles"
-                ? "transform rotate-180"
-                : ""
+              ? "transform rotate-180"
+              : ""
               }`}
           />
         </button>
@@ -302,6 +393,9 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
   const totalPages = Math.max(1, Math.ceil(totalUsers / itemsPerPage));
   const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
 
+  const usersToDisplay = currentPage === 1 && superAdmin && !searchTerm
+    ? [superAdmin, ...newUsers]
+    : newUsers;
   return (
     <div className="p-2 sm:p-4 lg:p-6">
       <div className="mx-auto space-y-4 sm:space-y-6">
@@ -330,12 +424,15 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
                     <TableHeader className="w-24 sm:w-32 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide">
                       Actions
                     </TableHeader>
+                    <TableHeader className="w-16 sm:w-20 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                      Status
+                    </TableHeader>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {newUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-4 sm:px-6 py-8 sm:py-12 text-center">
+                      <td colSpan={6} className="px-4 sm:px-6 py-8 sm:py-12 text-center">
                         <div className="text-gray-500">
                           {loading ? (
                             <div className="flex items-center justify-center">
@@ -355,14 +452,20 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
                       </td>
                     </tr>
                   ) : (
-                    newUsers.map((user1, index) => {
+                    usersToDisplay.map((user1, index) => {
                       const userRoles = getUserAssignedRoles(user1.tenant_user_id || "");
                       const userId = user1.tenant_user_id || index.toString();
+                      const isCurrentUserToggling = togglingUsers.has(userId);
+
 
                       return (
+                        // <tr
+                        //   key={index}
+                        //   className="hover:bg-gray-50 transition-colors duration-150 cursor-pointer"
+                        // >
                         <tr
                           key={index}
-                          className="hover:bg-gray-50 transition-colors duration-150 cursor-pointer"
+                          className={`hover:bg-gray-50 transition-colors duration-150  ${adminName === user1.name ? "opacity-50 cursor-not-allowed" : "cursor-pointer"} `}
                         >
                           <td className="px-3 sm:px-4 py-3 sm:py-4 text-center text-sm font-medium text-gray-900">
                             {indexOfFirstItem + index + 1}
@@ -375,7 +478,7 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
                               }
                             }}
                           >
-                            <div className="text-sm font-semibold text-gray-900 truncate">
+                            <div className="text-sm font-semibold text-gray-600 truncate">
                               {user1.name}
                             </div>
                           </td>
@@ -397,7 +500,11 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
                           <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
                             <button
                               className="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-[#008F98] text-white hover:bg-[#007a82] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-150 shadow-sm"
+
                               onClick={(e) => {
+                                if (adminName === user1.name) {
+                                  return;
+                                }
                                 e.stopPropagation(); // Prevent row click when button is clicked
                                 setSelectedUser(user1);
                                 setShowAssignmentForm(true);
@@ -405,6 +512,24 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
                             >
                               Assign
                             </button>
+                          </td>
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
+                            <div className="relative inline-block">
+                              <Toggle
+                                enabled={userStatusMap[userId] === "active"}
+                                onChange={() => {
+                                  if (!isCurrentUserToggling && adminName !== user1.name) {
+                                    toggleUserStatus(userId);
+                                  }
+                                }}
+                              />
+
+                              {isCurrentUserToggling && (
+                                <div className="absolute inset-0 bg-white bg-opacity-40 rounded-full flex items-center justify-center cursor-not-allowed">
+                                  <div className="h-4 w-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+                                </div>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -495,7 +620,3 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
 };
 
 export default SuperUserManagement;
-
-
-
-

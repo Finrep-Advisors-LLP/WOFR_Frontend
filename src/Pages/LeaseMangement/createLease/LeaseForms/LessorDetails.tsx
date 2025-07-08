@@ -1,20 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ChevronDown, X, AlertTriangle } from "lucide-react";
-import { LeaseFormLabels } from "../LeaseForms/LeaseFormLabel";
 import { LeaseFormData } from "../../../../types";
+import useMaster from "../../../../hooks/useMaster";
 
-// interface LeaseFormData {
-//   entityMaster: string | string[];
-//   department: string[];
-//   leaserMaster: string | string[];
-//   hasMultiEntityAllocation?: boolean;
-//   hasLessorAllocation?: boolean; // Added this field
-//   // Add these new fields for storing allocation percentages
-//   entityDepartmentPercentages?: Record<string, Record<string, number>>;
-//   lessorPercentages?: Record<string, number>;
-//   // NEW: Field for overall entity allocation percentages
-//   overallEntityPercentages?: Record<string, number>;
-// }
 
 interface LeaseBasicInfoProps {
   formData: LeaseFormData;
@@ -23,40 +11,10 @@ interface LeaseBasicInfoProps {
   onNext: () => void;
   onSave: () => void;
   isSaving: boolean;
+  readOnly?: boolean;
+  disabled?: boolean;
 }
 
-const departmentOptionsMap: Record<string, { label: string; value: string }[]> =
-  {
-    entity1: [
-      { label: "HR", value: "hr" },
-      { label: "Admin", value: "admin" },
-      { label: "IT", value: "it" },
-    ],
-    entity2: [
-      { label: "HR", value: "hr" },
-      { label: "Account", value: "account" },
-      { label: "IT", value: "it" },
-    ],
-    entity3: [
-      { label: "Sales", value: "sales" },
-      { label: "HR", value: "hr" },
-      { label: "Admin", value: "admin" },
-    ],
-  };
-
-const entityLabels: Record<string, string> = {
-  entity1: "Entity 1",
-  entity2: "Entity 2",
-  entity3: "Entity 3",
-};
-
-const lessorOptions = [
-  { label: "ABC Properties Ltd.", value: "leaser1" },
-  { label: "XYZ Real Estate Co.", value: "leaser2" },
-  { label: "Premium Spaces Inc.", value: "leaser3" },
-  { label: "Global Property Holdings", value: "leaser4" },
-  { label: "Metropolitan Leasing", value: "leaser5" },
-];
 
 interface MultiSelectDropdownProps {
   options: { label: string; value: string }[];
@@ -66,6 +24,7 @@ interface MultiSelectDropdownProps {
   disabled?: boolean;
   singleSelect?: boolean;
 }
+
 
 const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
   options,
@@ -78,6 +37,7 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -88,9 +48,11 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
       }
     };
 
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
 
   const handleOptionToggle = (value: string) => {
     if (singleSelect) {
@@ -104,10 +66,12 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
     }
   };
 
+
   const removeSelectedItem = (value: string, e: React.MouseEvent) => {
     e.stopPropagation();
     onSelectionChange(selectedValues.filter((v) => v !== value));
   };
+
 
   const getSelectedLabels = () => {
     return selectedValues.map(
@@ -115,6 +79,7 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
         options.find((option) => option.value === value)?.label || value
     );
   };
+
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -161,6 +126,7 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
         </div>
       </div>
 
+
       {isOpen && !disabled && (
         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
           {options.length === 0 ? (
@@ -180,7 +146,7 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
                   <input
                     type="checkbox"
                     checked={selectedValues.includes(option.value)}
-                    onChange={() => {}} // Handled by parent click
+                    onChange={() => {}}
                     className="mr-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                 )}
@@ -188,7 +154,7 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
                   <input
                     type="radio"
                     checked={selectedValues.includes(option.value)}
-                    onChange={() => {}} // Handled by parent click
+                    onChange={() => {}}
                     className="mr-3 border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                 )}
@@ -202,6 +168,7 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
   );
 };
 
+
 export const LessorDetails: React.FC<LeaseBasicInfoProps> = ({
   formData,
   updateFormData,
@@ -209,8 +176,11 @@ export const LessorDetails: React.FC<LeaseBasicInfoProps> = ({
   onNext,
   onSave,
   isSaving,
+  readOnly = false,
+  disabled = false,
 }) => {
-  // Initialize state from formData if available
+  const { entities, LessorData, department, fetchEntityMaster, fetchLessors, fetchDepartment } = useMaster();
+ 
   const [entityDepartmentPercentages, setEntityDepartmentPercentages] =
     useState<Record<string, Record<string, number>>>(
       formData.entityDepartmentPercentages || {}
@@ -218,28 +188,67 @@ export const LessorDetails: React.FC<LeaseBasicInfoProps> = ({
   const [lessorPercentages, setLessorPercentages] = useState<
     Record<string, number>
   >(formData.lessorPercentages || {});
-  // NEW STATE: for overall entity percentages
   const [overallEntityPercentages, setOverallEntityPercentages] = useState<
     Record<string, number>
-  >(formData.overallEntityPercentages || {}); // Line 209
+  >(formData.overallEntityPercentages || {});
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
 
+
   const isMultiEntityMode = formData.hasMultiEntityAllocation;
-  const isLessorSplitMode = formData.hasLessorAllocation; // New variable for lessor split
+  const isLessorSplitMode = formData.hasLessorAllocation;
+
+
+  // Load master data
+  useEffect(() => {
+    fetchEntityMaster();
+    fetchLessors();
+    fetchDepartment();
+  }, []);
+
+
+  // Convert API data to dropdown options
+  const entityOptions = entities.map(entity => ({
+    label: entity.entity_name,
+    value: entity.entity_id.toString()
+  }));
+
+
+  const lessorOptions = LessorData.map(lessor => ({
+    label: lessor.lessor_name,
+    value: lessor.lessor_id.toString()
+  }));
+
+
+  // Create department map based on entities (for demo purposes, showing all departments for all entities)
+ const getDepartmentsForEntity = (entityId: string) => {
+  console.log(entityId);
+  
+  return department
+    .filter(dept => dept.department_id !== null) // Filter out null department_ids
+    .map(dept => ({
+      label: dept.department_name,
+      value: dept.department_id!.toString() // Using ! to assert non-null since we filtered
+    }));
+};
+
+
 
   // Update formData whenever percentages change
   useEffect(() => {
-    if (isMultiEntityMode) {
-      updateFormData({
-        entityDepartmentPercentages,
-        overallEntityPercentages, // NEW: Include in formData update // Line 220
-      });
-    }
+    if (!readOnly) {
+      if (isMultiEntityMode) {
+        updateFormData({
+          entityDepartmentPercentages,
+          overallEntityPercentages,
+        });
+      }
 
-    if (isLessorSplitMode) {
-      updateFormData({
-        lessorPercentages,
-      });
+
+      if (isLessorSplitMode) {
+        updateFormData({
+          lessorPercentages,
+        });
+      }
     }
   }, [
     entityDepartmentPercentages,
@@ -247,24 +256,31 @@ export const LessorDetails: React.FC<LeaseBasicInfoProps> = ({
     lessorPercentages,
     isMultiEntityMode,
     isLessorSplitMode,
-    updateFormData,
-  ]); // Line 225
+    readOnly,
+  ]);
+
 
   const handleEntityChange = (selectedEntities: string[]) => {
+    if (readOnly) return;
+   
     updateFormData({
       entityMaster: isMultiEntityMode
         ? selectedEntities
         : selectedEntities[0] || "",
     });
 
+
     // Reset department selection when entity changes in single mode
     if (!isMultiEntityMode) {
       setSelectedDepartment("");
-updateFormData({ department: [] as string[] });
+      updateFormData({ department: [] as string[] });
     }
   };
 
+
   const handleLessorChange = (selectedLessors: string[]) => {
+    if (readOnly) return;
+   
     updateFormData({
       leaserMaster: isLessorSplitMode
         ? selectedLessors
@@ -272,18 +288,24 @@ updateFormData({ department: [] as string[] });
     });
   };
 
+
   const handleDepartmentChange = (selectedDepartments: string[]) => {
+    if (readOnly) return;
+   
     if (!isMultiEntityMode) {
       setSelectedDepartment(selectedDepartments[0] || "");
       updateFormData({ department: selectedDepartments });
     }
   };
 
+
   const handleEntityDepartmentPercentageChange = (
     entityId: string,
     deptId: string,
     value: string
   ) => {
+    if (readOnly) return;
+   
     const numValue = parseFloat(value) || 0;
     const newPercentages = {
       ...entityDepartmentPercentages,
@@ -295,12 +317,13 @@ updateFormData({ department: [] as string[] });
     setEntityDepartmentPercentages(newPercentages);
   };
 
-  // NEW FUNCTION: Handle overall entity percentage change
+
   const handleOverallEntityPercentageChange = (
     entityId: string,
     value: string
   ) => {
-    // Line 266
+    if (readOnly) return;
+   
     const numValue = parseFloat(value) || 0;
     const newOverallPercentages = {
       ...overallEntityPercentages,
@@ -309,7 +332,10 @@ updateFormData({ department: [] as string[] });
     setOverallEntityPercentages(newOverallPercentages);
   };
 
+
   const handleLessorPercentageChange = (lessorId: string, value: string) => {
+    if (readOnly) return;
+   
     const numValue = parseFloat(value) || 0;
     const newPercentages = {
       ...lessorPercentages,
@@ -318,16 +344,18 @@ updateFormData({ department: [] as string[] });
     setLessorPercentages(newPercentages);
   };
 
+
   const getUniqueDepartments = () => {
     const selectedEntities = Array.isArray(formData.entityMaster)
       ? formData.entityMaster
       : formData.entityMaster
       ? [formData.entityMaster]
       : [];
+   
     const deptMap = new Map<string, string>();
-
+   
     selectedEntities.forEach((entityId) => {
-      const departments = departmentOptionsMap[entityId] || [];
+      const departments = getDepartmentsForEntity(entityId);
       departments.forEach((dept) => {
         if (!deptMap.has(dept.value)) {
           deptMap.set(dept.value, dept.label);
@@ -335,39 +363,39 @@ updateFormData({ department: [] as string[] });
       });
     });
 
+
     return Array.from(deptMap.entries()).map(([value, label]) => ({
       value,
       label,
     }));
   };
 
-  const getDepartmentsForEntity = (entityId: string) => {
-    return departmentOptionsMap[entityId] || [];
-  };
 
   const entityHasDepartment = (entityId: string, deptValue: string) => {
-    const departments = departmentOptionsMap[entityId] || [];
+    const departments = getDepartmentsForEntity(entityId);
     return departments.some((dept) => dept.value === deptValue);
   };
+
 
   const getEntityTotal = (entityId: string) => {
     const entityPercentages = entityDepartmentPercentages[entityId] || {};
     return Object.values(entityPercentages).reduce((sum, val) => sum + val, 0);
   };
 
-  // NEW FUNCTION: Calculate total of overall entity percentages
+
   const getOverallEntityGrandTotal = () => {
-    // Line 309
     return Object.values(overallEntityPercentages).reduce(
       (sum, val) => sum + val,
       0
     );
   };
 
+
   const lessorTotal = Object.values(lessorPercentages).reduce(
     (sum, val) => sum + val,
     0
   );
+
 
   const selectedEntities = Array.isArray(formData.entityMaster)
     ? formData.entityMaster
@@ -381,7 +409,8 @@ updateFormData({ department: [] as string[] });
     : [];
   const uniqueDepartments = getUniqueDepartments();
 
-  // Validation for multi-entity mode (entity row total)
+
+  // Validation
   const allEntityTotalsValid =
     !isMultiEntityMode ||
     (selectedEntities.length > 0 &&
@@ -390,33 +419,39 @@ updateFormData({ department: [] as string[] });
         return Math.abs(total - 100) < 0.01;
       }));
 
-  // NEW VALIDATION: for overall entity percentages grand total
+
   const overallEntityGrandTotalValid =
     !isMultiEntityMode ||
     selectedEntities.length === 0 ||
-    Math.abs(getOverallEntityGrandTotal() - 100) < 0.01; // Line 327
+    Math.abs(getOverallEntityGrandTotal() - 100) < 0.01;
 
-  // Validation for lessor split mode
+
   const lessorTotalValid =
     !isLessorSplitMode ||
     selectedLessors.length === 0 ||
     Math.abs(lessorTotal - 100) < 0.01;
 
-  // Validation for single modes
+
   const singleModeValid =
     (isMultiEntityMode || selectedEntities.length > 0) &&
     (isLessorSplitMode || selectedLessors.length > 0) &&
     (isMultiEntityMode || selectedDepartment);
 
-  // Update canProceed to include overallEntityGrandTotalValid
+
   const canProceed =
-    isMultiEntityMode || isLessorSplitMode
+    readOnly ||
+    (isMultiEntityMode || isLessorSplitMode
       ? allEntityTotalsValid &&
         overallEntityGrandTotalValid &&
         lessorTotalValid &&
         selectedEntities.length > 0 &&
-        selectedLessors.length > 0 // Line 338
-      : singleModeValid;
+        selectedLessors.length > 0
+      : singleModeValid);
+
+
+  // Check if master data is available
+  const hasRequiredMasterData = entities.length > 0 && LessorData.length > 0;
+
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm">
@@ -425,6 +460,27 @@ updateFormData({ department: [] as string[] });
           ? "Multi-Entity/Lessor Setup"
           : "Lease Master Setup"}
       </h2>
+
+
+      {/* Warning if master data is missing */}
+      {!hasRequiredMasterData && (
+        <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded-md">
+          <div className="flex items-start">
+            <AlertTriangle className="text-yellow-500 mr-3 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="text-yellow-800 font-medium">Required Master Data Missing</h3>
+              <p className="text-yellow-700 mt-1">
+                Please create the following master data first:
+              </p>
+              <ul className="list-disc list-inside mt-2 text-yellow-700">
+                {entities.length === 0 && <li>Entity Master records</li>}
+                {LessorData.length === 0 && <li>Lessor Master records</li>}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* Section: Entity Selection */}
       <div className="mb-6">
@@ -440,23 +496,21 @@ updateFormData({ department: [] as string[] });
             <span className="text-red-600">*</span>
           </label>
           <MultiSelectDropdown
-            options={[
-              { label: "Entity 1", value: "entity1" },
-              { label: "Entity 2", value: "entity2" },
-              { label: "Entity 3", value: "entity3" },
-            ]}
+            options={entityOptions}
             selectedValues={selectedEntities}
             onSelectionChange={handleEntityChange}
             placeholder={
               isMultiEntityMode ? "Select Entity(ies)" : "Select an Entity"
             }
             singleSelect={!isMultiEntityMode}
+            disabled={disabled || !hasRequiredMasterData}
           />
         </div>
       </div>
 
+
       {/* Department Selection for Single Entity Mode */}
-      {!isMultiEntityMode && selectedEntities.length > 0 && (
+      {!isMultiEntityMode && selectedEntities.length > 0 && hasRequiredMasterData && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-4 text-gray-800">
             Department Selection
@@ -466,8 +520,7 @@ updateFormData({ department: [] as string[] });
               htmlFor="department"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              {LeaseFormLabels.lessorDetails.departmentSelection.inputLabel}{" "}
-              <span className="text-red-600">*</span>
+              Select Department
             </label>
             <MultiSelectDropdown
               options={getDepartmentsForEntity(selectedEntities[0])}
@@ -475,15 +528,18 @@ updateFormData({ department: [] as string[] });
               onSelectionChange={handleDepartmentChange}
               placeholder="Select a Department"
               singleSelect={true}
+              disabled={disabled}
             />
           </div>
         </div>
       )}
 
+
       {/* Entity-Department Matrix for Multi-Entity Mode */}
       {isMultiEntityMode &&
         selectedEntities.length > 0 &&
-        uniqueDepartments.length > 0 && (
+        uniqueDepartments.length > 0 &&
+        hasRequiredMasterData && (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-4 text-gray-800">
               Entity-Department Allocation Matrix
@@ -492,16 +548,11 @@ updateFormData({ department: [] as string[] });
               <table className="w-full border border-gray-300 rounded-lg">
                 <thead className="bg-gray-50">
                   <tr>
-                    {/* NEW TH for Overall Entity Allocation */}
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 border-b border-r border-gray-300 bg-gray-100 min-w-[120px]">
-                      {
-                        LeaseFormLabels.lessorDetails.allocationMatrix
-                          .overallAllocation
-                      }{" "}
-                      (%) {/* Line 398 */}
+                      Overall Allocation (%)
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 border-b border-r border-gray-300">
-                      {LeaseFormLabels.lessorDetails.allocationMatrix.entity}
+                      Entity
                     </th>
                     {uniqueDepartments.map((dept) => (
                       <th
@@ -512,11 +563,7 @@ updateFormData({ department: [] as string[] });
                       </th>
                     ))}
                     <th className="px-4 py-3 text-center text-sm font-semibold text-gray-900 border-b bg-gray-100 border-gray-300">
-                      {
-                        LeaseFormLabels.lessorDetails.allocationMatrix
-                          .entityTotal
-                      }{" "}
-                      (%)
+                      Entity Total (%)
                     </th>
                   </tr>
                 </thead>
@@ -525,7 +572,9 @@ updateFormData({ department: [] as string[] });
                     const entityTotal = getEntityTotal(entityId);
                     const isValidTotal = Math.abs(entityTotal - 100) < 0.01;
                     const currentOverallEntityValue =
-                      overallEntityPercentages[entityId] || ""; // Line 421
+                      overallEntityPercentages[entityId] || "";
+                    const entityName = entities.find(e => e.entity_id.toString() === entityId)?.entity_name || entityId;
+
 
                     return (
                       <tr
@@ -534,17 +583,16 @@ updateFormData({ department: [] as string[] });
                           entityIndex % 2 === 0 ? "bg-white" : "bg-gray-50"
                         }
                       >
-                        {/* NEW TD for Overall Entity Allocation Input */}
                         <td className="px-2 py-3 border-r border-gray-300 text-center">
-                          {" "}
-                          {/* Line 425 */}
                           <input
                             type="number"
                             min="0"
                             max="100"
                             step="0.01"
                             placeholder="0.00"
-                            className={`w-full px-2 py-1 border border-gray-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                            className={`w-full px-2 py-1 border border-gray-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                              disabled ? "bg-gray-100 cursor-not-allowed" : ""
+                            }`}
                             value={currentOverallEntityValue}
                             onChange={(e) =>
                               handleOverallEntityPercentageChange(
@@ -552,10 +600,12 @@ updateFormData({ department: [] as string[] });
                                 e.target.value
                               )
                             }
+                            disabled={disabled}
+                            readOnly={readOnly}
                           />
                         </td>
                         <td className="px-4 py-3 text-sm font-medium text-gray-900 border-r border-gray-300 bg-gray-50">
-                          {entityLabels[entityId] || entityId}
+                          {entityName}
                         </td>
                         {uniqueDepartments.map((dept) => {
                           const hasThisDept = entityHasDepartment(
@@ -566,6 +616,7 @@ updateFormData({ department: [] as string[] });
                             entityDepartmentPercentages[entityId]?.[
                               dept.value
                             ] || "";
+
 
                           return (
                             <td
@@ -578,9 +629,9 @@ updateFormData({ department: [] as string[] });
                                 max="100"
                                 step="0.01"
                                 placeholder={hasThisDept ? "0.00" : "N/A"}
-                                disabled={!hasThisDept}
+                                disabled={!hasThisDept || disabled}
                                 className={`w-full px-2 py-1 border border-gray-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                  !hasThisDept
+                                  !hasThisDept || disabled
                                     ? "bg-gray-100 cursor-not-allowed text-gray-400"
                                     : ""
                                 }`}
@@ -593,11 +644,12 @@ updateFormData({ department: [] as string[] });
                                     e.target.value
                                   )
                                 }
+                                readOnly={readOnly}
                               />
                             </td>
                           );
                         })}
-                        <td className="px-4 py-3 text-center bg-gray-100 border-l ">
+                        <td className="px-4 py-3 text-center bg-gray-100 border-l">
                           <span
                             className={`text-sm font-semibold ${
                               isValidTotal ? "text-green-600" : "text-red-600"
@@ -621,21 +673,12 @@ updateFormData({ department: [] as string[] });
                     );
                   })}
                 </tbody>
-                {/* NEW TFOOT for Overall Entity Grand Total */}
                 <tfoot className="bg-gray-50">
-                  {" "}
-                  {/* Line 486 */}
                   <tr>
                     <td className="px-4 py-3 text-sm font-semibold text-gray-900 border-r border-gray-300 bg-gray-100">
-                      {
-                        LeaseFormLabels.lessorDetails.allocationMatrix
-                          .overallGrandTotal
-                      }
-                      :
+                      Overall Grand Total:
                     </td>
                     <td className="px-4 py-3 text-center bg-gray-100 border-l border-r border-gray-300">
-                      {" "}
-                      {/* Line 490 */}
                       <span
                         className={`text-sm font-semibold ${
                           overallEntityGrandTotalValid
@@ -646,7 +689,7 @@ updateFormData({ department: [] as string[] });
                         {getOverallEntityGrandTotal().toFixed(2)}%
                       </span>
                       {!overallEntityGrandTotalValid && (
-                        <div className="flex items-center justify-center mt-1 ">
+                        <div className="flex items-center justify-center mt-1">
                           <AlertTriangle
                             size={12}
                             className="text-red-500 mr-1"
@@ -655,7 +698,6 @@ updateFormData({ department: [] as string[] });
                         </div>
                       )}
                     </td>
-                    {/* Empty cells for department columns, and Entity Total column */}
                     {uniqueDepartments.map((dept) => (
                       <td
                         key={`empty-dept-footer-${dept.value}`}
@@ -669,6 +711,7 @@ updateFormData({ department: [] as string[] });
             </div>
           </div>
         )}
+
 
       {/* Section: Lessor Selection */}
       <div className="mb-6">
@@ -691,12 +734,14 @@ updateFormData({ department: [] as string[] });
               isLessorSplitMode ? "Select Lessor(s)" : "Select a Lessor"
             }
             singleSelect={!isLessorSplitMode}
+            disabled={disabled || !hasRequiredMasterData}
           />
         </div>
       </div>
 
+
       {/* Lessor Allocation Table for Lessor Split Mode */}
-      {isLessorSplitMode && selectedLessors.length > 0 && (
+      {isLessorSplitMode && selectedLessors.length > 0 && hasRequiredMasterData && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-4 text-gray-800">
             Lessor Allocation
@@ -706,29 +751,22 @@ updateFormData({ department: [] as string[] });
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 border-b">
-                    {
-                      LeaseFormLabels.lessorDetails.lessorAllocation
-                        .lessorColumn
-                    }
+                    Lessor
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 border-b">
-                    {
-                      LeaseFormLabels.lessorDetails.lessorAllocation
-                        .percentageColumn
-                    }{" "}
-                    (%)
+                    Percentage (%)
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {selectedLessors.map((lessorId) => {
-                  const lessor = lessorOptions.find(
-                    (l) => l.value === lessorId
+                  const lessor = LessorData.find(
+                    (l) => l.lessor_id.toString() === lessorId
                   );
                   return (
                     <tr key={lessorId} className="border-b">
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {lessor?.label || lessorId}
+                        {lessor?.lessor_name || lessorId}
                       </td>
                       <td className="px-4 py-3">
                         <input
@@ -737,7 +775,9 @@ updateFormData({ department: [] as string[] });
                           max="100"
                           step="0.01"
                           placeholder="0.00"
-                          className="w-32 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className={`w-32 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            disabled ? "bg-gray-100 cursor-not-allowed" : ""
+                          }`}
                           value={lessorPercentages[lessorId] || ""}
                           onChange={(e) =>
                             handleLessorPercentageChange(
@@ -745,6 +785,8 @@ updateFormData({ department: [] as string[] });
                               e.target.value
                             )
                           }
+                          disabled={disabled}
+                          readOnly={readOnly}
                         />
                       </td>
                     </tr>
@@ -754,7 +796,7 @@ updateFormData({ department: [] as string[] });
               <tfoot className="bg-gray-50">
                 <tr>
                   <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                    {LeaseFormLabels.lessorDetails.lessorAllocation.totalLabel}:
+                    Total:
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -783,38 +825,63 @@ updateFormData({ department: [] as string[] });
         </div>
       )}
 
+
       {/* Buttons */}
-      <div className="mt-8 flex justify-between">
-        <button
-          type="button"
-          onClick={onPrevious}
-          className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
-        >
-          Previous
-        </button>
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={isSaving}
-          className={`bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors ${
-            isSaving ? "opacity-50 cursor-not-allowed" : ""
-          }`}
-        >
-          {isSaving ? "Saving..." : "Save"}
-        </button>
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={!canProceed}
-          className={`px-4 py-2 rounded-md transition-colors ${
-            !canProceed
-              ? "bg-gray-400 text-gray-200 cursor-not-allowed"
-              : "bg-[#008F98] text-white hover:bg-[#007A82] cursor-pointer"
-          }`}
-        >
-          Next
-        </button>
-      </div>
+      {!readOnly && (
+        <div className="mt-8 flex justify-between">
+          <button
+            type="button"
+            onClick={onPrevious}
+            className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={isSaving}
+            className={`bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors ${
+              isSaving ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+          >
+            {isSaving ? "Saving..." : "Save"}
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={!canProceed || !hasRequiredMasterData}
+            className={`px-4 py-2 rounded-md transition-colors ${
+              !canProceed || !hasRequiredMasterData
+                ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                : "bg-[#008F98] text-white hover:bg-[#007A82] cursor-pointer"
+            }`}
+          >
+            Next
+          </button>
+        </div>
+      )}
+
+
+      {/* READ-ONLY MODE NAVIGATION */}
+      {readOnly && (
+        <div className="mt-8 flex justify-between">
+          <button
+            type="button"
+            onClick={onPrevious}
+            className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            className="bg-[#008F98] text-white px-4 py-2 rounded-md hover:bg-[#007A82] transition-colors"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 };
+

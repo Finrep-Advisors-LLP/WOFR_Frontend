@@ -1,5 +1,6 @@
 
 
+
 import React, { useEffect, useState, useRef } from "react";
 import { ChevronDown, X, User, Check, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -50,12 +51,17 @@ const MultiSelectDropdown = ({
   assignedRoles?: string[];
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [dropdownPosition, setDropdownPosition] = useState<'below' | 'above'>('below');
+  const [, setDropdownPosition] = useState<"below" | "above">("below");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  
-  const selectedOptions = options.filter(opt => selectedValues.includes(opt.id));
-  const availableOptions = options.filter(opt => !assignedRoles.includes(opt.id));
+
+  const selectedOptions = options.filter((opt) =>
+    selectedValues.includes(opt.id)
+  );
+  const availableOptions = options.filter(
+    (opt) => !assignedRoles.includes(opt.id)
+  );
+  const portalDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen && buttonRef.current) {
@@ -63,30 +69,39 @@ const MultiSelectDropdown = ({
       const viewportHeight = window.innerHeight;
       const spaceBelow = viewportHeight - buttonRect.bottom;
       const spaceAbove = buttonRect.top;
-      
-      setDropdownPosition(spaceBelow < 250 && spaceAbove > spaceBelow ? 'above' : 'below');
-    }
-  }, [isOpen]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      setDropdownPosition(
+        spaceBelow < 250 && spaceAbove > spaceBelow ? "above" : "below"
+      );
     }
   }, [isOpen]);
 
   const handleToggleOption = (optionId: string) => {
     const newValues = selectedValues.includes(optionId)
-      ? selectedValues.filter(id => id !== optionId)
+      ? selectedValues.filter((id) => id !== optionId)
       : [...selectedValues, optionId];
     onChange(newValues);
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target) &&
+        portalDropdownRef.current &&
+        !portalDropdownRef.current.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [isOpen]);
 
   const getDisplayText = () => {
     if (selectedOptions.length === 0) return placeholder;
@@ -97,15 +112,18 @@ const MultiSelectDropdown = ({
   return (
     <div className="space-y-1">
       <label className="text-sm font-medium text-gray-700">{label}</label>
-      
+
       {assignedRoles.length > 0 && (
         <div className="mb-2">
           <div className="text-xs text-gray-500 mb-1">Already Assigned:</div>
           <div className="flex flex-wrap gap-1">
             {assignedRoles.map((roleId) => {
-              const role = options.find(opt => opt.id === roleId);
+              const role = options.find((opt) => opt.id === roleId);
               return role ? (
-                <span key={roleId} className="inline-flex items-center px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded">
+                <span
+                  key={roleId}
+                  className="inline-flex items-center px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded"
+                >
                   {role.name}
                 </span>
               ) : null;
@@ -129,63 +147,63 @@ const MultiSelectDropdown = ({
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className={selectedOptions.length > 0 ? "text-gray-900" : "text-gray-500"}>
-              {availableOptions.length === 0 ? "All roles assigned" : getDisplayText()}
+            <span
+              className={
+                selectedOptions.length > 0 ? "text-gray-900" : "text-gray-500"
+              }
+            >
+              {availableOptions.length === 0
+                ? "All roles assigned"
+                : getDisplayText()}
             </span>
-            <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+            <ChevronDown
+              className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${
+                isOpen ? "rotate-180" : ""
+              }`}
+            />
           </div>
         </button>
 
         {isOpen && !disabled && availableOptions.length > 0 && (
-          <div className={`absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl ${
-            dropdownPosition === 'above' ? 'bottom-full mb-2' : 'top-full mt-2'
-          }`}>
-            <div className="max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-              {availableOptions.length > 5 && (
-                <div className="px-3 py-2 border-b border-gray-100 bg-gray-50 sticky top-0">
-                  <div className="text-xs text-gray-500 font-medium">
-                    {availableOptions.length} available roles
-                  </div>
-                </div>
-              )}
-              
-              <div className="py-1">
-                {availableOptions.map((option) => {
-                  const isSelected = selectedValues.includes(option.id);
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => handleToggleOption(option.id)}
-                      className={`w-full px-3 py-2.5 text-left text-sm hover:bg-blue-50 flex items-center justify-between transition-colors duration-150 ${
-                        isSelected ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:text-gray-900'
-                      }`}
-                    >
-                      <span className="flex-1 truncate pr-2 font-medium">{option.name}</span>
-                      {isSelected && (
-                        <div className="flex-shrink-0">
-                          <Check className="h-4 w-4 text-blue-600" />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+          <div
+            ref={portalDropdownRef}
+            className={`mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-xl`}
+          >
+            <div className="max-h-48 overflow-y-auto">
+              {availableOptions.map((option) => {
+                const isSelected = selectedValues.includes(option.id);
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => handleToggleOption(option.id)}
+                    className="w-full px-3 py-2.5 text-left text-sm hover:bg-blue-50 flex items-center justify-between"
+                  >
+                    <span className="truncate pr-2">{option.name}</span>
+                    {isSelected && <Check className="h-4 w-4 text-blue-600" />}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
       </div>
-      
+
       {selectedOptions.length > 0 && (
         <div className="mt-2">
-          <div className="text-xs text-gray-500 mb-1">Selected for Assignment:</div>
+          <div className="text-xs text-gray-500 mb-1">
+            Selected for Assignment:
+          </div>
           <div className="flex flex-wrap gap-1">
             {selectedOptions.map((option) => (
-              <span key={option.id} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md border border-blue-200">
+              <span
+                key={option.id}
+                className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md border border-blue-200"
+              >
                 <span className="font-medium">{option.name}</span>
-                <button 
-                  type="button" 
-                  onClick={() => handleToggleOption(option.id)} 
+                <button
+                  type="button"
+                  onClick={() => handleToggleOption(option.id)}
                   className="hover:bg-blue-200 rounded-full p-0.5 transition-colors duration-150"
                   title="Remove role"
                 >
@@ -200,7 +218,12 @@ const MultiSelectDropdown = ({
   );
 };
 
-const AssignUser: React.FC<AssignUserProps> = ({ user, onClose, onSuccess, onError }) => {
+const AssignUser: React.FC<AssignUserProps> = ({
+  user,
+  onClose,
+  onSuccess,
+  onError,
+}) => {
   const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
   const [allRoles, setAllRoles] = useState<Role[]>([]);
   const [assignedRoleIds, setAssignedRoleIds] = useState<string[]>([]);
@@ -213,10 +236,10 @@ const AssignUser: React.FC<AssignUserProps> = ({ user, onClose, onSuccess, onErr
 
   // Custom toast styles
   const toastStyle = {
-    borderRadius: '8px',
-    padding: '12px 16px',
-    fontSize: '14px',
-    maxWidth: '500px',
+    borderRadius: "8px",
+    padding: "12px 16px",
+    fontSize: "14px",
+    maxWidth: "500px",
   };
 
   const fetchData = async () => {
@@ -224,18 +247,6 @@ const AssignUser: React.FC<AssignUserProps> = ({ user, onClose, onSuccess, onErr
       setLoading(true);
       setError(null);
 
-      // const loadingToast = toast.loading(
-      //   <div className="flex items-center gap-2">
-      //     <Loader2 className="h-4 w-4 animate-spin" />
-      //     <span>Loading user roles...</span>
-      //   </div>,
-      //   {
-      //     style: toastStyle,
-      //     duration: 3000,
-      //   }
-      // );
-
-      // Fetch available roles
       const rolesResponse = await axios.get<APIResponse>(
         `api/v1/user-assignment-roles`,
         {
@@ -262,33 +273,27 @@ const AssignUser: React.FC<AssignUserProps> = ({ user, onClose, onSuccess, onErr
           }
         );
 
-        const assignments = assignedResponse.data.data.assigned_screen_to_tenant_user || [];
-        const userAssignments = assignments.filter((assignment: any) => 
-          assignment.tenant_user_id === user.tenant_user_id
+        const assignments =
+          assignedResponse.data.data.assigned_screen_to_tenant_user || [];
+        const userAssignments = assignments.filter(
+          (assignment: any) => assignment.tenant_user_id === user.tenant_user_id
         );
 
-        const assignedIds = [...new Set(
-          userAssignments.map((assignment: any) => 
-            assignment.screen_data?.role?.role_id?.toString()
-          ).filter(Boolean)
-        )];
+        const assignedIds = [
+          ...new Set(
+            userAssignments
+              .map((assignment: any) =>
+                assignment.screen_data?.role?.role_id?.toString()
+              )
+              .filter(Boolean)
+          ),
+        ];
 
         setAssignedRoleIds(assignedIds as string[]);
-
-        // toast.success(
-        //   <div className="flex items-center gap-2">
-        //     <Check className="h-4 w-4 text-green-500" />
-        //     <span>Roles loaded successfully!</span>
-        //   </div>,
-        //   {
-        //     id: loadingToast,
-        //     style: toastStyle,
-        //     duration: 2000
-        //   }
-        // );
+        // Initialize selected roles with already assigned roles
+        setSelectedRoleIds(assignedIds as string[]);
       } catch (assignedError) {
         console.warn("Could not fetch assigned roles:", assignedError);
-        // toast.dismiss(loadingToast);
       }
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -300,7 +305,7 @@ const AssignUser: React.FC<AssignUserProps> = ({ user, onClose, onSuccess, onErr
         </div>,
         {
           style: toastStyle,
-          duration: 4000
+          duration: 4000,
         }
       );
     } finally {
@@ -327,7 +332,7 @@ const AssignUser: React.FC<AssignUserProps> = ({ user, onClose, onSuccess, onErr
         </div>,
         {
           style: toastStyle,
-          duration: 4000
+          duration: 4000,
         }
       );
       return;
@@ -349,18 +354,25 @@ const AssignUser: React.FC<AssignUserProps> = ({ user, onClose, onSuccess, onErr
 
       const payload = {
         tenant_user_id: user.tenant_user_id,
-        role_id: selectedRoleIds.map(id => parseInt(id)),
+        role_id: selectedRoleIds.map((id) => parseInt(id)),
       };
 
-      await axios.post("api/v1/assign-tenant-user-screen", payload, {
+      // Determine whether to use POST or PUT based on whether roles were previously assigned
+      const apiEndpoint = assignedRoleIds.length > 0
+        ? "api/v1/tenant/user"  // PUT for updates
+        : "api/v1/assign-tenant-user-screen"; // POST for initial assignment
+
+      const apiMethod = assignedRoleIds.length > 0 ? "put" : "post";
+
+      await axios[apiMethod](apiEndpoint, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
           "Content-Type": "application/json",
         },
       });
-      
-    onClose();
+
+      onClose();
       toast.success(
         <div className="flex items-center gap-2">
           <Check className="h-4 w-4 text-green-500" />
@@ -369,7 +381,7 @@ const AssignUser: React.FC<AssignUserProps> = ({ user, onClose, onSuccess, onErr
         {
           id: savingToast,
           style: toastStyle,
-          duration: 5000
+          duration: 5000,
         }
       );
 
@@ -377,20 +389,15 @@ const AssignUser: React.FC<AssignUserProps> = ({ user, onClose, onSuccess, onErr
         onSuccess(`${selectedRoleIds.length} role(s) assigned successfully`);
       }
 
-      // Delay closing to allow user to see the success message
-      
-     setTimeout(() => {
-        // onClose();     
       window.location.reload();
-      }, 2000);
     } catch (err: any) {
       console.error("Error saving assignments:", err);
       const errorMessage =
-        err.response?.data?.message || 
-        err.response?.data?.detail || 
+        err.response?.data?.message ||
+        err.response?.data?.detail ||
         "Failed to assign roles";
       setError(errorMessage);
-      
+
       toast.error(
         <div className="flex items-center gap-2">
           <X className="h-4 w-4 text-red-500" />
@@ -398,10 +405,10 @@ const AssignUser: React.FC<AssignUserProps> = ({ user, onClose, onSuccess, onErr
         </div>,
         {
           style: toastStyle,
-          duration: 5000
+          duration: 5000,
         }
       );
-      
+
       if (onError) {
         onError(errorMessage);
       }
@@ -431,8 +438,8 @@ const AssignUser: React.FC<AssignUserProps> = ({ user, onClose, onSuccess, onErr
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-6 shadow-xl max-w-sm">
           <div className="text-red-600 mb-4 text-center">{error}</div>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
           >
             Close
@@ -443,13 +450,17 @@ const AssignUser: React.FC<AssignUserProps> = ({ user, onClose, onSuccess, onErr
   }
 
   return createPortal(
-    // <>
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden max-h-[90vh]">
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Assign User Roles</h2>
-          <button 
-            onClick={onClose} 
+          <h2 className="text-lg font-semibold text-white">
+            Assign User Roles
+          </h2>
+          <button
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
             className="p-1 hover:bg-white/20 rounded-lg transition-colors"
             disabled={saving}
           >
@@ -469,7 +480,8 @@ const AssignUser: React.FC<AssignUserProps> = ({ user, onClose, onSuccess, onErr
               </div>
             </div>
             <div className="text-xs text-gray-500">
-              <span className="font-medium">User ID:</span> {user.tenant_user_id}
+              <span className="font-medium">User ID:</span>{" "}
+              {user.tenant_user_id}
             </div>
           </div>
 
@@ -504,15 +516,15 @@ const AssignUser: React.FC<AssignUserProps> = ({ user, onClose, onSuccess, onErr
                 Assigning...
               </>
             ) : (
-              `Assign ${selectedRoleIds.length} Role${selectedRoleIds.length !== 1 ? 's' : ''}`
+              `Assign ${selectedRoleIds.length} Role${
+                selectedRoleIds.length !== 1 ? "s" : ""
+              }`
             )}
           </button>
         </div>
       </div>
     </div>,
-   
-  
-     document.body
+    document.body
   );
 };
 

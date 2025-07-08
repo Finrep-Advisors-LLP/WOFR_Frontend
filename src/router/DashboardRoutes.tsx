@@ -1,3 +1,5 @@
+
+
 import DashboardOverview from "../Pages/Sidebar/DashboardOverview";
 import {
   BarChart3,
@@ -7,7 +9,7 @@ import {
   IdCard,
   IndianRupee,
   KeyRound,
-  LaptopMinimalCheck,
+  // LaptopMinimalCheck,
   LayoutDashboard,
   PackageOpen,
   ReceiptIndianRupee,
@@ -17,6 +19,7 @@ import {
   UserCog,
   UserRoundCog,
   Users,
+  UserCheck,
 } from "lucide-react";
 
 import { JSX } from "react";
@@ -32,13 +35,14 @@ import AssetMaster from "../Pages/LeaseMangement/Masters/AssetMaster";
 import SuperRoleManagement from "../Pages/SuperAdminPages/RoleManagement/SuperRoleManagement";
 import DepartmentMaster from "../Pages/LeaseMangement/Masters/DepartmentMaster";
 import Currency from "../Pages/LeaseMangement/Masters/Currency";
-import CheckerDashboard from "../Pages/LeaseMangement/Checker/CheckerDashboard";
+// import CheckerDashboard from "../Pages/LeaseMangement/Checker/CheckerDashboard";
 import MasterModulesPage from "../Pages/MasterAdmin/Modules/MasterModulesPage";
 import { MasterRoleManagement } from "../Pages/MasterAdmin/Roles/MasterRoleManagement";
+// import CheckerLeaseManagement from "../Pages/LeaseMangement/CheckerWorkflow/CheckerLeaseManagement";
 
 export interface RouteChild {
   name: string;
-  path: string;
+  path?: string; // Made optional since parent menus don't need paths
   icon: JSX.Element;
   element?: JSX.Element;
   allowedRoles: string[];
@@ -47,7 +51,7 @@ export interface RouteChild {
 
 export interface RouteItem {
   name: string;
-  path: string;
+  path?: string; // Made optional since parent menus don't need paths
   icon: JSX.Element;
   element?: JSX.Element;
   allowedRoles: string[];
@@ -62,81 +66,96 @@ export const DashboardRoutes: RouteItem[] = [
     element: <DashboardOverview />,
     allowedRoles: ["dev", "master_admin", "super_admin", 'tenant_user'],
   },
-   {
-    name: "Module Manager",
-    path: "module-dashboard",
-    icon: <ClipboardList size={20} />,
-    allowedRoles: ["dev", "super_admin"],
-    children: [
+  // {
+  //   name: "Module Manager",
+  //   // Removed path since this is a parent menu
+  //   icon: <ClipboardList size={20} />,
+  //   allowedRoles: ["dev", "super_admin"],
+  //   children: [
       {
         name: "Lease Management",
-        path: "lease",
-        icon: <ReceiptIndianRupee size={20} />,
-        element: <LeaseManagement />,
-        allowedRoles: ["dev", "super_admin"],
-      },
-      {
-        name: "Lease Checker",
-        path: "checker",
-        icon: <LaptopMinimalCheck size={20} />,
-        element: <CheckerDashboard />,
-        allowedRoles: ["dev", "super_admin"],
-      },
-      {
-        name: "Master",
-        path: "master", 
-        icon: <Hotel size={20} />,
+        // Removed path since this is a parent menu
+        icon: <ClipboardList size={20} />,
         allowedRoles: ["dev", "super_admin"],
         children: [
+           {
+    name: "Dashboard",
+    path: "overviews",
+    icon: <LayoutDashboard size={20} />,
+    element: <DashboardOverview />,
+    allowedRoles: ["dev", "master_admin", "super_admin", 'tenant_user'],
+  },
           {
-            name: "Entity Master",
-            path: "entity-master", 
-            icon: <IdCard size={20} />,
-            element: <EntityMaster/>,
+            name: "Leases",
+            path: "lease",
+            icon: <ReceiptIndianRupee size={20} />,
+            element: <LeaseManagement />,
             allowedRoles: ["dev", "super_admin"],
           },
           {
-            name: "Lessor Master",
-            path: "lessor-master", 
-            icon: <UserRoundCog size={20} />,
-            element: <LessorMaster />,
-            allowedRoles: ["dev", "super_admin"],
+            name: "Checker ",
+            path: "checker-lease",
+            icon: <UserCheck size={20} />,
+            element: <LeaseManagement />,
+            allowedRoles: ["dev", "super_admin", "checker"],
           },
           {
-            name: "Asset Master",
-            path: "asset-master",
-            icon: <KeyRound size={20} />,
-            element: <AssetMaster />,
+            name: "Master",
+            // Removed path since this is a parent menu that should only show dropdown
+            icon: <Hotel size={20} />,
             allowedRoles: ["dev", "super_admin"],
-          },
-          {
-            name: "GL Master",
-            path: "gl-master", 
-            icon: <BookKey size={20} />,
-            element: <GlMaster />,
-            allowedRoles: ["dev", "super_admin"],
-          },
-          {
-            name: "Department Master",
-            path: "department-master", 
-            icon: <University size={20} />,
-            element: <DepartmentMaster />,
-            allowedRoles: ["dev", "super_admin"],
-          },
-          {
-            name: "Currency Master",
-            path: "currency-master",
-            icon: <IndianRupee size={20} />,
-            element: <Currency />,
-            allowedRoles: ["dev", "super_admin"],
+            children: [
+              {
+                name: "Entity Master",
+                path: "entity-master",
+                icon: <IdCard size={20} />,
+                element: <EntityMaster />,
+                allowedRoles: ["dev", "super_admin"],
+              },
+              {
+                name: "Lessor Master",
+                path: "lessor-master",
+                icon: <UserRoundCog size={20} />,
+                element: <LessorMaster />,
+                allowedRoles: ["dev", "super_admin"],
+              },
+              {
+                name: "Asset Master",
+                path: "asset-master",
+                icon: <KeyRound size={20} />,
+                element: <AssetMaster />,
+                allowedRoles: ["dev", "super_admin"],
+              },
+              {
+                name: "GL Master",
+                path: "gl-master",
+                icon: <BookKey size={20} />,
+                element: <GlMaster />,
+                allowedRoles: ["dev", "super_admin"],
+              },
+              {
+                name: "Department Master",
+                path: "department-master",
+                icon: <University size={20} />,
+                element: <DepartmentMaster />,
+                allowedRoles: ["dev", "super_admin"],
+              },
+              {
+                name: "Currency Master",
+                path: "currency-master",
+                icon: <IndianRupee size={20} />,
+                element: <Currency />,
+                allowedRoles: ["dev", "super_admin"],
+              },
+            ],
           },
         ],
       },
-    ],
-  },
+  //   ],
+  // },
   {
     name: "Admin View",
-    path: "admin-view",
+    // Removed path since this is a parent menu
     icon: <KeyRound size={20} />,
     allowedRoles: ["dev", "super_admin"],
     children: [
@@ -157,7 +176,7 @@ export const DashboardRoutes: RouteItem[] = [
       {
         name: "Role Management",
         path: "role-mangement",
-        element: <SuperRoleManagement isReadOnly={false} />,
+        element: <SuperRoleManagement  />,
         icon: <UserCog size={20} />,
         allowedRoles: ["super_admin"],
       },
@@ -177,19 +196,18 @@ export const DashboardRoutes: RouteItem[] = [
     element: <MasterModulesPage />,
     allowedRoles: ["dev", "master_admin"],
   },
- 
   {
-        name: "User Management",
-        path: "users",
-        element: <UserListPage />,
-        icon: <Users size={20} />,
-        allowedRoles: ["dev", "master_admin"],
-      },
+    name: "User Management",
+    path: "users",
+    element: <UserListPage />,
+    icon: <Users size={20} />,
+    allowedRoles: ["dev", "master_admin"],
+  },
   {
     name: "Roles Controller",
     path: "role-management",
     icon: <Settings size={20} />,
-    element: <MasterRoleManagement  />,
+    element: <MasterRoleManagement />,
     allowedRoles: ["dev", "master_admin"],
   },
   {

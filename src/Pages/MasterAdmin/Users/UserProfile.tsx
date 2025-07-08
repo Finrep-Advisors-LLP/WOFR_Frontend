@@ -203,7 +203,7 @@ const UserProfile = () => {
     const fetchModules = async () => {
       try {
         setLoading(true);
-        const response = await axios.get("api/v1/user-role-assignments", {
+        const response = await axios.get("api/v1/user/role-assignments", {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/json",

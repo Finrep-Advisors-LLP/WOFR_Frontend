@@ -1,9 +1,9 @@
+
 import React, { useState, useEffect } from "react";
 import { Trash2, Plus } from "lucide-react";
-import { LeaseFormData, SecurityDeposit } from "../../../../types";
 import { v4 as uuidv4 } from "uuid";
 import { LeaseFormLabels } from "./LeaseFormLabel";
-
+import { LeaseFormData, SecurityDeposit } from "../../../../types";
 
 interface LeaseRentRevisionProps {
   formData: LeaseFormData;
@@ -11,6 +11,8 @@ interface LeaseRentRevisionProps {
   onPrevious: () => void;
   onNext: () => void;
   isSaving?: boolean;
+  readOnly?: boolean;
+  disabled?: boolean;
 }
 
 interface FormErrors {
@@ -22,6 +24,8 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
   updateFormData,
   onPrevious,
   onNext,
+  readOnly = false,
+  disabled = false,
 }) => {
   const [showExcelFormat, setShowExcelFormat] = useState(
     (formData.securityDeposits && formData.securityDeposits.length > 1) || false
@@ -44,8 +48,10 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
   const [errors, setErrors] = useState<FormErrors>({});
 
   useEffect(() => {
-    updateFormData({ securityDeposits });
-  }, [securityDeposits, updateFormData]);
+    if (!readOnly) {
+      updateFormData({ securityDeposits });
+    }
+  }, [securityDeposits, readOnly]);
 
   const handleSecurityDepositChange = (
     id: string,
@@ -53,6 +59,8 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
     value: string,
     index: number
   ) => {
+    if (readOnly) return;
+    
     setSecurityDeposits((prevDeposits) => {
       const newDeposits = [...prevDeposits];
       newDeposits[index] = { ...newDeposits[index], [field]: value };
@@ -78,6 +86,8 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
   };
 
   const addSecurityDeposit = () => {
+    if (readOnly) return;
+    
     if (!showExcelFormat) {
       setShowExcelFormat(true);
     }
@@ -96,6 +106,8 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
   };
 
   const removeSecurityDeposit = (id: string) => {
+    if (readOnly) return;
+    
     setSecurityDeposits((prev) => {
       const newDeposits = prev.filter((deposit) => deposit.id !== id);
       if (newDeposits.length <= 1) {
@@ -115,6 +127,8 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
   };
 
   const validateForm = () => {
+    if (readOnly) return true;
+    
     const newErrors: FormErrors = {};
     let isValid = true;
 
@@ -160,7 +174,7 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
   };
 
   const handleNext = () => {
-    if (validateForm()) {
+    if (readOnly || validateForm()) {
       onNext();
     }
   };
@@ -174,14 +188,16 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
             Security Deposit
           </h3>
         </div>
-        <button
-          type="button"
-          onClick={addSecurityDeposit}
-          className="bg-[#008F98] text-white px-4 py-2 rounded-md hover:bg-[#007a82] transition-colors flex items-center gap-2 w-full sm:w-auto justify-center"
-        >
-          <Plus size={16} />
-          <span>Add Deposit</span>
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={addSecurityDeposit}
+            className="bg-[#008F98] text-white px-4 py-2 rounded-md hover:bg-[#007a82] transition-colors flex items-center gap-2 w-full sm:w-auto justify-center"
+          >
+            <Plus size={16} />
+            <span>Add Deposit</span>
+          </button>
+        )}
       </div>
 
       {!showExcelFormat ? (
@@ -206,7 +222,9 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                     errors[`${deposit.id}-depositNumber`]
                       ? "border-red-300"
                       : "border-gray-300"
-                  } px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  } px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    disabled ? "bg-gray-100 cursor-not-allowed" : ""
+                  }`}
                   placeholder="Enter deposit name"
                   value={deposit.depositNumber}
                   onChange={(e) =>
@@ -217,6 +235,8 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                       index
                     )
                   }
+                  disabled={disabled}
+                  readOnly={readOnly}
                 />
                 {errors[`${deposit.id}-depositNumber`] && (
                   <p className="mt-1 text-sm text-red-600">
@@ -243,7 +263,9 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                       errors[`${deposit.id}-amount`]
                         ? "border-red-300"
                         : "border-gray-300"
-                    } pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    } pl-8 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      disabled ? "bg-gray-100 cursor-not-allowed" : ""
+                    }`}
                     placeholder="0.00"
                     step="0.01"
                     value={deposit.amount}
@@ -261,6 +283,8 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                         index
                       )
                     }
+                    disabled={disabled}
+                    readOnly={readOnly}
                   />
                 </div>
                 {errors[`${deposit.id}-amount`] && (
@@ -287,7 +311,9 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                       errors[`${deposit.id}-rate`]
                         ? "border-red-300"
                         : "border-gray-300"
-                    } pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    } pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      disabled ? "bg-gray-100 cursor-not-allowed" : ""
+                    }`}
                     placeholder="0.00"
                     step="0.01"
                     value={deposit.rate}
@@ -305,6 +331,8 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                         index
                       )
                     }
+                    disabled={disabled}
+                    readOnly={readOnly}
                   />
                   <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
                     %
@@ -331,9 +359,11 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                     errors[`${deposit.id}-startDate`]
                       ? "border-red-300"
                       : "border-gray-300"
-                  } px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  } px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    disabled ? "bg-gray-100 cursor-not-allowed" : ""
+                  }`}
                   value={deposit.startDate || ""}
-                  onFocus={(e) => e.target.showPicker && e.target.showPicker()}
+                  onFocus={(e) => !disabled && e.target.showPicker && e.target.showPicker()}
                   onChange={(e) =>
                     handleSecurityDepositChange(
                       deposit.id,
@@ -342,6 +372,8 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                       index
                     )
                   }
+                  disabled={disabled}
+                  readOnly={readOnly}
                 />
                 {errors[`${deposit.id}-startDate`] && (
                   <p className="mt-1 text-sm text-red-600">
@@ -364,10 +396,12 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                     errors[`${deposit.id}-endDate`]
                       ? "border-red-300"
                       : "border-gray-300"
-                  } px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  } px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    disabled ? "bg-gray-100 cursor-not-allowed" : ""
+                  }`}
                   value={deposit.endDate}
                   min={deposit.startDate || undefined}
-                  onFocus={(e) => e.target.showPicker && e.target.showPicker()}
+                  onFocus={(e) => !disabled && e.target.showPicker && e.target.showPicker()}
                   onChange={(e) =>
                     handleSecurityDepositChange(
                       deposit.id,
@@ -376,6 +410,8 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                       index
                     )
                   }
+                  disabled={disabled}
+                  readOnly={readOnly}
                 />
                 {errors[`${deposit.id}-endDate`] && (
                   <p className="mt-1 text-sm text-red-600">
@@ -410,7 +446,11 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                   errors[`${deposit.id}-remark`]
                     ? "border-red-300"
                     : "border-gray-300"
-                } px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                } px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  disabled ? "bg-gray-100 cursor-not-allowed" : ""
+                }`}
+                disabled={disabled}
+                readOnly={readOnly}
               ></textarea>
               {errors[`${deposit.id}-remark`] && (
                 <p className="mt-1 text-sm text-red-600">
@@ -445,9 +485,11 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                   <th className="border border-gray-300 px-3 py-2 sm:px-4 sm:py-3 text-left text-sm font-medium text-gray-700">
                     Remark
                   </th>
-                  <th className="border border-gray-300 px-3 py-2 sm:px-4 sm:py-3 text-center text-sm font-medium text-gray-700">
-                    Actions
-                  </th>
+                  {!readOnly && (
+                    <th className="border border-gray-300 px-3 py-2 sm:px-4 sm:py-3 text-center text-sm font-medium text-gray-700">
+                      Actions
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -461,7 +503,7 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                             errors[`${deposit.id}-depositNumber`]
                               ? "bg-red-50"
                               : ""
-                          }`}
+                          } ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
                           placeholder="Enter deposit name"
                           value={deposit.depositNumber}
                           onChange={(e) =>
@@ -472,6 +514,8 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                               index
                             )
                           }
+                          disabled={disabled}
+                          readOnly={readOnly}
                         />
                         {errors[`${deposit.id}-depositNumber`] && (
                           <span className="text-xs text-red-600 px-3 pb-1">
@@ -486,7 +530,7 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                           type="number"
                           className={`w-full border-0 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
                             errors[`${deposit.id}-amount`] ? "bg-red-50" : ""
-                          }`}
+                          } ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
                           placeholder="0.00"
                           step="0.01"
                           value={deposit.amount}
@@ -498,6 +542,8 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                               index
                             )
                           }
+                          disabled={disabled}
+                          readOnly={readOnly}
                         />
                         {errors[`${deposit.id}-amount`] && (
                           <span className="text-xs text-red-600 px-3 pb-1">
@@ -512,7 +558,7 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                           type="number"
                           className={`w-full border-0 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
                             errors[`${deposit.id}-rate`] ? "bg-red-50" : ""
-                          }`}
+                          } ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
                           placeholder="0.00"
                           step="0.01"
                           value={deposit.rate}
@@ -524,6 +570,8 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                               index
                             )
                           }
+                          disabled={disabled}
+                          readOnly={readOnly}
                         />
                         {errors[`${deposit.id}-rate`] && (
                           <span className="text-xs text-red-600 px-3 pb-1">
@@ -538,7 +586,7 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                           type="date"
                           className={`w-full border-0 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
                             errors[`${deposit.id}-startDate`] ? "bg-red-50" : ""
-                          }`}
+                          } ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
                           value={deposit.startDate}
                           min={
                             index > 0
@@ -553,6 +601,8 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                               index
                             )
                           }
+                          disabled={disabled}
+                          readOnly={readOnly}
                         />
                         {errors[`${deposit.id}-startDate`] && (
                           <span className="text-xs text-red-600 px-3 pb-1">
@@ -567,7 +617,7 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                           type="date"
                           className={`w-full border-0 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
                             errors[`${deposit.id}-endDate`] ? "bg-red-50" : ""
-                          }`}
+                          } ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
                           value={deposit.endDate}
                           min={deposit.startDate || undefined}
                           onChange={(e) =>
@@ -578,6 +628,8 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                               index
                             )
                           }
+                          disabled={disabled}
+                          readOnly={readOnly}
                         />
                         {errors[`${deposit.id}-endDate`] && (
                           <span className="text-xs text-red-600 px-3 pb-1">
@@ -592,7 +644,7 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                           type="text"
                           className={`w-full border-0 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
                             errors[`${deposit.id}-remark`] ? "bg-red-50" : ""
-                          }`}
+                          } ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
                           placeholder="Enter remark"
                           value={deposit.remark}
                           onChange={(e) =>
@@ -603,6 +655,8 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                               index
                             )
                           }
+                          disabled={disabled}
+                          readOnly={readOnly}
                         />
                         {errors[`${deposit.id}-remark`] && (
                           <span className="text-xs text-red-600 px-3 pb-1">
@@ -611,20 +665,22 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
                         )}
                       </div>
                     </td>
-                    <td className="border border-gray-300 px-3 py-2 text-center">
-                      <div className="flex justify-center gap-2">
-                        {securityDeposits.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeSecurityDeposit(deposit.id)}
-                            className="p-1 text-red-600 hover:text-red-800 focus:outline-none"
-                            aria-label="Delete row"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
+                    {!readOnly && (
+                      <td className="border border-gray-300 px-3 py-2 text-center">
+                        <div className="flex justify-center gap-2">
+                          {securityDeposits.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeSecurityDeposit(deposit.id)}
+                              className="p-1 text-red-600 hover:text-red-800 focus:outline-none"
+                              aria-label="Delete row"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -633,30 +689,53 @@ const LeaseRentRevision: React.FC<LeaseRentRevisionProps> = ({
         </div>
       )}
 
-      <div className="mt-6 sm:mt-8 flex flex-col-reverse sm:flex-row justify-between gap-4">
-        <button
-          type="button"
-          onClick={onPrevious}
-          className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors w-full sm:w-auto"
-        >
-          Previous
-        </button>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          <button
-            type="button"
-            className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors w-full sm:w-auto"
-          >
-            Save
-          </button>
-          <button
-            type="button"
-            onClick={handleNext}
-            className="bg-[#008F98] text-white px-4 py-2 rounded-md hover:bg-[#007A82] transition-colors w-full sm:w-auto"
-          >
-            Next
-          </button>
-        </div>
-      </div>
+{!readOnly && (
+  <div className="mt-6 sm:mt-8 flex flex-col-reverse sm:flex-row justify-between gap-4">
+    <button
+      type="button"
+      onClick={onPrevious}
+      className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors w-full sm:w-auto"
+    >
+      Previous
+    </button>
+    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+      <button
+        type="button"
+        className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors w-full sm:w-auto"
+      >
+        Save
+      </button>
+      <button
+        type="button"
+        onClick={handleNext}
+        className="bg-[#008F98] text-white px-4 py-2 rounded-md hover:bg-[#007A82] transition-colors w-full sm:w-auto"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+)}
+
+{/* READ-ONLY MODE NAVIGATION */}
+{readOnly && (
+  <div className="mt-6 sm:mt-8 flex justify-between">
+    <button
+      type="button"
+      onClick={onPrevious}
+      className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
+    >
+      Previous
+    </button>
+    <button
+      type="button"
+      onClick={onNext}
+      className="bg-[#008F98] text-white px-4 py-2 rounded-md hover:bg-[#007A82] transition-colors"
+    >
+      Next
+    </button>
+  </div>
+)}
+
     </div>
   );
 };
