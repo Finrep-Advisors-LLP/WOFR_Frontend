@@ -301,6 +301,14 @@ const AssetMaster: React.FC = () => {
 
               {/* Form Actions */}
               <div className="flex gap-2 pt-4">
+                
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="flex-1 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
                   className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
@@ -311,13 +319,6 @@ const AssetMaster: React.FC = () => {
                     : editingAsset
                     ? "Update Asset"
                     : "Save Asset"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="flex-1 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600"
-                >
-                  Cancel
                 </button>
               </div>
             </form>
