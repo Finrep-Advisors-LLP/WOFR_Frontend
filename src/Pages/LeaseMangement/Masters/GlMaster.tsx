@@ -327,7 +327,7 @@ const GlMaster: React.FC = () => {
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h2 className="text-xl font-semibold text-gray-900">
-                Create New GlMaster
+                Create New GL Master
               </h2>
               <button
                 onClick={closeModal}
@@ -574,7 +574,7 @@ const GlMaster: React.FC = () => {
                       Creating...
                     </>
                   ) : (
-                    "Create GlMaster"
+                    "Create GL Master"
                   )}
                 </button>
               </div>
