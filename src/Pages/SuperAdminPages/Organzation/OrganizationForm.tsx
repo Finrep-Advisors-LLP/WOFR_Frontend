@@ -308,25 +308,25 @@ const OrganizationForm = ({
               Registration / Tax ID
             </label>
             <input
-{/*               {...register("registration_tax_id", {
-                validate: (value) => {
-                  if (!value) return true;
-                  const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-                  const gstinRegex =
-                    /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-                  const cinRegex =
-                    /^[UL][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$/;
+             {...register("registration_tax_id", {
+                // validate: (value) => {
+                //   if (!value) return true;
+                //   const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+                //   const gstinRegex =
+                //     /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+                //   const cinRegex =
+                //     /^[UL][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$/;
 
-                  if (
-                    panRegex.test(value) ||
-                    gstinRegex.test(value) ||
-                    cinRegex.test(value)
-                  ) {
-                    return true;
-                  }
-                  return "Enter a valid PAN, GSTIN, or CIN";
-                },
-              })} */}
+                //   if (
+                //     panRegex.test(value) ||
+                //     gstinRegex.test(value) ||
+                //     cinRegex.test(value)
+                //   ) {
+                //     return true;
+                //   }
+                //   return "Enter a valid PAN, GSTIN, or CIN";
+                // },
+              })} 
               className="w-full px-4 py-3 bg-gray-100 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
               placeholder="Enter PAN, GSTIN, or CIN"
               disabled={!isEditting && !!initialData?.organization_type}
