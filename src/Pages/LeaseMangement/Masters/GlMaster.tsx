@@ -274,7 +274,7 @@ const GlMaster: React.FC = () => {
                           {entity.department_id}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {new Date(entity.created_at).toLocaleDateString()}
+                           {new Date(entity.created_at).toLocaleDateString("en-GB")}
                         </td>
                         {/* Action buttons can be uncommented if needed */}
                         {/* <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
