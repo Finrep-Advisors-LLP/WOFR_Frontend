@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useState, useCallback } from "react";
 import axios from "../helper/axios";
 import { useAuth } from "./useAuth";
@@ -238,6 +239,7 @@ export const useSuperAdminRoles = () => {
             headers: getAuthHeaders(),
           }
         );
+console.log("roles", data);
 
         // Check if the response structure is correct
         if (!data || !data.data || !data.data.roles) {
@@ -304,6 +306,7 @@ export const useSuperAdminRoles = () => {
           });
 
         setSuperAdminRoleMappings(data.data);
+console.log("fetchsuperadminmapping", data);
 
         // Update pagination metadata for super admin table
         if (data.meta) {
@@ -341,6 +344,7 @@ export const useSuperAdminRoles = () => {
               headers: getAuthHeaders(),
             }
           );
+console.log("fetchassignroles", data);
 
         const transformedModules: ModuleWithActions[] = [];
 
@@ -572,7 +576,8 @@ export const useSuperAdminRoles = () => {
           selectedAction === mapping.action_name
         ) {
           mapping.sub_actions.forEach((subAction) => {
-            const uniqueKey = `${subAction.sub_action_name}`;
+            // Create unique key including parent action to prevent cross-action selection
+            const uniqueKey = `${subAction.sub_action_name}-${mapping.action_name}`;
             // Only include unassigned sub-actions
             if (
               !seen.has(uniqueKey) &&
@@ -596,7 +601,8 @@ export const useSuperAdminRoles = () => {
           module.actions.forEach((action) => {
             if (selectedAction === action.action_name) {
               action.sub_actions.forEach((subAction) => {
-                const uniqueKey = `${subAction.sub_action_name}`;
+                // Create unique key including parent action to prevent cross-action selection
+                const uniqueKey = `${subAction.sub_action_name}-${action.action_name}`;
                 // Only include unassigned sub-actions
                 if (
                   !seen.has(uniqueKey) &&
@@ -747,6 +753,10 @@ export const useSuperAdminRoles = () => {
         return false;
       }
 
+      if (selectedSubActions.length === 0) {
+        setMessage("At least one sub-action is required");
+        return false;
+      }
       try {
         setIsLoading(true);
         const moduleIds = moduleOptions
@@ -763,20 +773,60 @@ export const useSuperAdminRoles = () => {
         }
 
         const subActionIds: number[] = [];
-        if (selectedSubActions.length > 0) {
-          const availableSubActions = getSubActionOptionsForModulesAndActions(
-            selectedModules,
-            selectedActions,
-            superAdminRoleId
+        
+        // Get all available sub-actions (both from existing mappings and grouped module actions)
+        const allAvailableSubActions: any[] = [];
+        
+        // Get from existing mappings
+        superAdminRoleMappings.forEach((mapping) => {
+          if (
+            selectedModules.includes(mapping.module_name) &&
+            selectedActions === mapping.action_name
+          ) {
+            mapping.sub_actions.forEach((subAction) => {
+              if (!allAvailableSubActions.find(sa => sa.sub_action_id === subAction.sub_action_id)) {
+                allAvailableSubActions.push({
+                  id: subAction.sub_action_name,
+                  sub_action_id: subAction.sub_action_id,
+                  sub_action_name: subAction.sub_action_name
+                });
+              }
+            });
+          }
+        });
+        
+        // Get from grouped module actions
+        groupedModuleActions.forEach((module) => {
+          if (selectedModules.includes(module.module_name)) {
+            module.actions.forEach((action) => {
+              if (selectedActions === action.action_name) {
+                action.sub_actions.forEach((subAction) => {
+                  if (!allAvailableSubActions.find(sa => sa.sub_action_id === subAction.sub_action_id)) {
+                    allAvailableSubActions.push({
+                      id: subAction.sub_action_name,
+                      sub_action_id: subAction.sub_action_id,
+                      sub_action_name: subAction.sub_action_name
+                    });
+                  }
+                });
+              }
+            });
+          }
+        });
+        
+        // Map selected sub-action names to IDs
+        selectedSubActions.forEach((subActionName) => {
+          const subAction = allAvailableSubActions.find(
+            (sa) => sa.id === subActionName
           );
-          selectedSubActions.forEach((subActionName) => {
-            const subAction = availableSubActions.find(
-              (sa) => sa.id === subActionName
-            );
-            if (subAction) {
-              subActionIds.push(subAction.sub_action_id);
-            }
-          });
+          if (subAction) {
+            subActionIds.push(subAction.sub_action_id);
+          }
+        });
+        
+        if (subActionIds.length === 0) {
+          setMessage("No valid sub-actions found");
+          return false;
         }
 
         const mappings = moduleIds.map((moduleId) => ({
@@ -830,7 +880,8 @@ export const useSuperAdminRoles = () => {
     [
       moduleOptions,
       getActionOptionsForModules,
-      getSubActionOptionsForModulesAndActions,
+      superAdminRoleMappings,
+      groupedModuleActions,
       getAuthHeaders,
       superAdminRoles,
       fetchSuperAdminRoleMappings,
@@ -845,6 +896,10 @@ export const useSuperAdminRoles = () => {
     }) => {
       if (!roleData.role_name.trim()) {
         throw new Error("Role name is required");
+      }
+
+      if (!roleData.description.trim()) {
+        throw new Error("Description is required");
       }
 
       setIsCreatingRole(true);
