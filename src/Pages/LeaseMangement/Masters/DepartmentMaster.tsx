@@ -199,11 +199,12 @@ const handleSubmit = async (e: React.FormEvent) => {
               </div>
 
               <div className="flex gap-2 pt-4">
-                <button type="submit" className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
-                  {editingAsset ? "Update" : "Save"}
-                </button>
+               
                 <button type="button" onClick={handleCancel} className="flex-1 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600">
                   Cancel
+                </button>
+                 <button type="submit" className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
+                  {editingAsset ? "Update" : "Save"}
                 </button>
               </div>
             </form>
