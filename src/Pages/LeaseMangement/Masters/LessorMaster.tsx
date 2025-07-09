@@ -398,7 +398,7 @@ const LessorMaster: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {entity.created_at}
+                          {new Date(entity?.created_at).toLocaleDateString("en-GB")}
                         </td>
                         {/* <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
