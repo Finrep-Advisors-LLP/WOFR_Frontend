@@ -318,7 +318,7 @@ const EntityMaster: React.FC = () => {
                           {entity.ownership_share_percent}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {entity.created_at}
+                           {new Date(entity?.created_at).toLocaleDateString("en-GB")}
                         </td>
                       </tr>
                     ))
