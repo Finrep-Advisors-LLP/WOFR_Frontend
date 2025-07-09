@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useState, useRef, useCallback } from "react";
 // import { ChevronDown } from "lucide-react";
 import { useAuth } from "../../../hooks/useAuth";
@@ -89,6 +90,7 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
     tenant_name?: string;
     created_at?: string;
     status?: string;
+    is_super_admin?: boolean;
   };
   const [newUsers, setNewUsers] = useState<User[]>([]);
 
@@ -211,7 +213,7 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [expandedDropdown]);
 
- 
+
   const fetchUserData = async (page: number = 1, search: string = "") => {
     try {
       setLoading(true);
@@ -237,7 +239,9 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
         const superAdminUser: User = {
           name: response.data.data.super_admin,
           email: response.data.data.super_admin_email,
-
+          status: "active", 
+          tenant_user_id: "super_admin",
+          is_super_admin: true
         };
         setSuperAdmin(superAdminUser);
         setAdminName(superAdminUser.name);
@@ -514,22 +518,30 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
                             </button>
                           </td>
                           <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
-                            <div className="relative inline-block">
-                              <Toggle
-                                enabled={userStatusMap[userId] === "active"}
-                                onChange={() => {
-                                  if (!isCurrentUserToggling && adminName !== user1.name) {
-                                    toggleUserStatus(userId);
-                                  }
-                                }}
-                              />
-
-                              {isCurrentUserToggling && (
-                                <div className="absolute inset-0 bg-white bg-opacity-40 rounded-full flex items-center justify-center cursor-not-allowed">
-                                  <div className="h-4 w-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-                                </div>
-                              )}
-                            </div>
+                            {user1.is_super_admin ? (
+                              <div className="relative inline-block">
+                                <Toggle
+                                  enabled={true}  // Force active (blue) state
+                                  onChange={() => { }}
+                                />
+                              </div>
+                            ) : (
+                              <div className="relative inline-block">
+                                <Toggle
+                                  enabled={userStatusMap[userId] === "active"}
+                                  onChange={() => {
+                                    if (!isCurrentUserToggling && adminName !== user1.name) {
+                                      toggleUserStatus(userId);
+                                    }
+                                  }}
+                                />
+                                {isCurrentUserToggling && (
+                                  <div className="absolute inset-0 bg-white bg-opacity-40 rounded-full flex items-center justify-center cursor-not-allowed">
+                                    <div className="h-4 w-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );
