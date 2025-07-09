@@ -580,6 +580,13 @@ const EntityMaster: React.FC = () => {
                           !isNaN(Number(value)) ||
                           "Please enter a valid number",
                       })}
+                      onInput={(e) => {
+                        const value = (e.target as HTMLInputElement).value;
+                        if (value !== "") {
+                          const numeric = Math.min(100, Math.max(1, parseInt(value)));
+                          (e.target as HTMLInputElement).value = numeric.toString();
+                        }
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Enter ownership share (1-100)"
                       min="1"
