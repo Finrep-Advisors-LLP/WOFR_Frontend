@@ -308,7 +308,7 @@ const OrganizationForm = ({
               Registration / Tax ID
             </label>
             <input
-              {...register("registration_tax_id", {
+{/*               {...register("registration_tax_id", {
                 validate: (value) => {
                   if (!value) return true;
                   const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
@@ -326,7 +326,7 @@ const OrganizationForm = ({
                   }
                   return "Enter a valid PAN, GSTIN, or CIN";
                 },
-              })}
+              })} */}
               className="w-full px-4 py-3 bg-gray-100 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
               placeholder="Enter PAN, GSTIN, or CIN"
               disabled={!isEditting && !!initialData?.organization_type}
