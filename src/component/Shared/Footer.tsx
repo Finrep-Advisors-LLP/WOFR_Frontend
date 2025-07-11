@@ -30,7 +30,7 @@ const Footer = () => {
         <div className="grid grid-cols-2 gap-4 xs:gap-5 sm:gap-6 text-xs xs:text-sm md:text-base mt-2 md:mt-0">
           <div>
             <h3 className="font-semibold mb-2 xs:mb-3 text-sm xs:text-base">
-              Navigation
+Quick Links
             </h3>
             <ul className="space-y-2 xs:space-y-3">
               <li className="hover:text-gray-300 cursor-pointer">Home</li>
@@ -40,7 +40,7 @@ const Footer = () => {
             </ul>
           </div>
 
-          <div>
+          {/* <div>
             <h3 className="font-semibold mb-2 xs:mb-3 text-sm xs:text-base">
               Support
             </h3>
@@ -57,7 +57,7 @@ const Footer = () => {
                 Terms of Service
               </li>
             </ul>
-          </div>
+          </div> */}
         </div>
       </div>
 

@@ -11,13 +11,13 @@ interface HeaderProps {
 
 const PAGE_INFO = {
   "/dashboard/modules": {
-    title: "Module Management",
-    description: "Manage your application modules and their settings.",
+ title: "Module Management",
+description: "View modules, actions, roles, and manage their status.",
   },
   "/dashboard/users": {
-    title: "User Management",
-    description:
-      "View and manage your organization's users and their access rights.",
+  title: "User Management",
+description: "View organization users, assign modules, and manage account status.",
+
   },
   "/dashboard/new": {
     title: "Our User Management",
@@ -35,11 +35,16 @@ const PAGE_INFO = {
   },
   "/dashboard/role-management": {
     title: "Role Management",
-    description: "View and manage your roles and their permissions.",
+    description: "Manage roles and their module mappings",
   },
-  "/dashboard/Lease": {
+  "/dashboard/lease": {
     title: "Lease Management",
-    description: "View and manage your roles and their permissions.",
+    description: "View and manage your leases and their permissions.",
+  },
+  "/dashboard/checker-lease":{
+   title: "Checker Dashboard",
+description: "Review, approve, or reject lease submissions.",
+
   },
   "/dashboard/module": {
     title: "Module Management",
@@ -58,27 +63,27 @@ const PAGE_INFO = {
     title: "Organization Management",
     description: "View and manage your Organization's settings.",
   },
-  "/dashboard/Entity": {
+  "/dashboard/entity-master": {
     title: "Entity Management",
     description: "View and manage your Entity's settings.",
   },
-  "/dashboard/Lessor": {
+  "/dashboard/lessor-master": {
     title: "Lessor Management",
     description: "View and manage your Lessor's settings.",
   },
-  "/dashboard/Asset": {
+  "/dashboard/asset-master": {
     title: "Asset Management",
     description: "View and manage your Asset's settings.",
   },
-  "/dashboard/GL": {
+  "/dashboard/gl-master": {
     title: "GL Management",
     description: "View and manage your GL's settings.",
   },
-  "/dashboard/department": {
+  "/dashboard/department-master": {
     title: "Department Management",
     description: "View and manage your department's settings.",
   },
-  "/dashboard/Currency": {
+  "/dashboard/currency-master": {
     title: "Currency Management",
     description: "View and manage your Currency's settings.",
   },
@@ -137,9 +142,8 @@ export const DashboardHeader = ({
   const { pageTitle, pageDescription } = useMemo(() => {
     if (location.pathname === "/dashboard/overview") {
       return {
-        pageTitle: `Welcome!!!`,
-        pageDescription:
-          "Here's what's happening with your enterprise dashboard today.",
+        pageTitle: "Admin Control",
+        pageDescription: "Manage roles, users, and view modules in one place.",
       };
     }
 
@@ -175,7 +179,7 @@ export const DashboardHeader = ({
 
   const validatePassword = useCallback((password: string) => {
     const errors: string[] = [];
-    
+
     if (!password) {
       errors.push("Password is required");
     } else {
@@ -195,32 +199,40 @@ export const DashboardHeader = ({
         errors.push("Password must contain at least one number");
       }
       if (!/(?=.*[@$!%*?&])/.test(password)) {
-        errors.push("Password must contain at least one special character (@$!%*?&)");
+        errors.push(
+          "Password must contain at least one special character (@$!%*?&)"
+        );
       }
     }
-    
+
     return errors;
   }, []);
 
-  const handlePasswordChange = useCallback((value: string) => {
-    setNewPassword(value);
-    const errors = validatePassword(value);
-    setPasswordErrors(errors);
-    
-    // Also validate confirm password if it exists
-    if (confirmPassword) {
-      setConfirmPasswordError(
-        value !== confirmPassword ? "Passwords do not match" : ""
-      );
-    }
-  }, [validatePassword, confirmPassword]);
+  const handlePasswordChange = useCallback(
+    (value: string) => {
+      setNewPassword(value);
+      const errors = validatePassword(value);
+      setPasswordErrors(errors);
 
-  const handleConfirmPasswordChange = useCallback((value: string) => {
-    setConfirmPassword(value);
-    setConfirmPasswordError(
-      value !== newPassword ? "Passwords do not match" : ""
-    );
-  }, [newPassword]);
+      // Also validate confirm password if it exists
+      if (confirmPassword) {
+        setConfirmPasswordError(
+          value !== confirmPassword ? "Passwords do not match" : ""
+        );
+      }
+    },
+    [validatePassword, confirmPassword]
+  );
+
+  const handleConfirmPasswordChange = useCallback(
+    (value: string) => {
+      setConfirmPassword(value);
+      setConfirmPasswordError(
+        value !== newPassword ? "Passwords do not match" : ""
+      );
+    },
+    [newPassword]
+  );
 
   const openPasswordModal = useCallback(() => {
     setIsPasswordModalOpen(true);
@@ -237,67 +249,78 @@ export const DashboardHeader = ({
     setShowConfirmPassword(false);
   }, []);
 
-  const handlePasswordSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const errors = validatePassword(newPassword);
-    if (errors.length > 0 || confirmPasswordError) {
-      return;
-    }
+  const handlePasswordSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
 
-    setIsChangingPassword(true);
-    
-    try {
-      const authToken = authState?.token;
-      if (!authToken) {
-        throw new Error("No authentication token found");
+      const errors = validatePassword(newPassword);
+      if (errors.length > 0 || confirmPasswordError) {
+        return;
       }
 
-      const response = await axios.put(
-        `api/auth/v1/update_password`,
-        {},
-        {
-          params: {
-            new_password: newPassword,
-            confirm_password: confirmPassword,
-          },
-          headers: {
-            'accept': 'application/json',
-            'Authorization': `Bearer ${authToken}`,
-          },
+      setIsChangingPassword(true);
+
+      try {
+        const authToken = authState?.token;
+        if (!authToken) {
+          throw new Error("No authentication token found");
         }
-      );
 
-      if (response.status === 200) {
-        alert("Password changed successfully!");
-        closePasswordModal();
-      }
-    } catch (error:any) {
-      console.error("Error changing password:", error);
-      
-   
-        const errorMessage = error.response?.data?.message || 
-                           error.response?.data?.detail || 
-                           `HTTP error! status: ${error.response?.status}`;
+        const response = await axios.put(
+          `api/auth/v1/update_password`,
+          {},
+          {
+            params: {
+              new_password: newPassword,
+              confirm_password: confirmPassword,
+            },
+            headers: {
+              accept: "application/json",
+              Authorization: `Bearer ${authToken}`,
+            },
+          }
+        );
+
+        if (response.status === 200) {
+          alert("Password changed successfully!");
+          closePasswordModal();
+        }
+      } catch (error: any) {
+        console.error("Error changing password:", error);
+
+        const errorMessage =
+          error.response?.data?.message ||
+          error.response?.data?.detail ||
+          `HTTP error! status: ${error.response?.status}`;
         alert(`Failed to change password: ${errorMessage}`);
-      
-    } finally {
-      setIsChangingPassword(false);
-    }
-  }, [newPassword, confirmPassword, confirmPasswordError, validatePassword, closePasswordModal, authState?.token]);
+      } finally {
+        setIsChangingPassword(false);
+      }
+    },
+    [
+      newPassword,
+      confirmPassword,
+      confirmPasswordError,
+      validatePassword,
+      closePasswordModal,
+      authState?.token,
+    ]
+  );
 
-  const isTenantUser = 
-    authState?.user_type === "tenant_user" || 
+  const isTenantUser =
+    authState?.user_type === "tenant_user" ||
     parsedUserData?.user_type === "tenant_user" ||
-    authState?.user_type === "Tenant User" || 
+    authState?.user_type === "Tenant User" ||
     parsedUserData?.user_type === "Tenant User" ||
-    (authState?.user_type && authState.user_type.toLowerCase().includes("tenant")) ||
-    (parsedUserData?.user_type && parsedUserData.user_type.toLowerCase().includes("tenant"));
+    (authState?.user_type &&
+      authState.user_type.toLowerCase().includes("tenant")) ||
+    (parsedUserData?.user_type &&
+      parsedUserData.user_type.toLowerCase().includes("tenant"));
 
   return (
     <>
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
-        <div className="px-2 sm:px-4 lg:px-6 xl:px-8 py-2 sm:py-3 lg:py-4 flex items-center justify-between min-h-[56px] sm:min-h-[64px] lg:min-h-[72px]">
+        <div className="px-0 sm:px-4 lg:px-6 xl:px-5 py-2 sm:py-2 lg:py-2 flex items-center justify-between min-h-[56px] sm:min-h-[64px] lg:min-h-[72px]">
           {/* Left Section */}
           <div className="flex items-center space-x-2 sm:space-x-3 lg:space-x-4 min-w-0 flex-1">
             {isMobile && (
@@ -306,16 +329,20 @@ export const DashboardHeader = ({
                 className="p-1.5 sm:p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 flex-shrink-0"
                 aria-label="Toggle sidebar"
               >
-                {sidebarVisible ? <Menu size={18} /> : <ChevronRight size={18} />}
+                {sidebarVisible ? (
+                  <Menu size={18} />
+                ) : (
+                  <ChevronRight size={18} />
+                )}
               </button>
             )}
 
             <div className="min-w-0 flex-1">
-              <h1 className="font-semibold text-gray-900 text-sm sm:text-base md:text-lg xl:text-xl 2xl:text-2xl truncate leading-tight">
+              <h1 className="font-semibold text-gray-900 text-sm sm:text-base md:text-lg xl:text-lg 2xl:text-2xl truncate leading-tight">
                 {pageTitle}
               </h1>
               {pageDescription && (
-                <p className="text-xs sm:text-sm lg:text-base  text-gray-600 mt-0.5 sm:mt-1 truncate hidden sm:block leading-relaxed">
+                <p className="text-xs sm:text-sm lg:text-sm  text-gray-600 mt-0.5 sm:mt-1 truncate hidden sm:block leading-relaxed">
                   {pageDescription}
                 </p>
               )}
@@ -396,7 +423,9 @@ export const DashboardHeader = ({
                     <div className="space-y-1.5 sm:space-y-2">
                       {parsedUserData?.user_id && (
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-500">User ID:</span>
+                          <span className="text-xs text-gray-500">
+                            User ID:
+                          </span>
                           <span className="text-xs sm:text-sm font-medium text-gray-900 truncate ml-2">
                             {parsedUserData.user_id}
                           </span>
@@ -404,7 +433,9 @@ export const DashboardHeader = ({
                       )}
                       {parsedUserData?.username && (
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-500">Username:</span>
+                          <span className="text-xs text-gray-500">
+                            Username:
+                          </span>
                           <span className="text-xs sm:text-sm font-medium text-gray-900 truncate ml-2">
                             {parsedUserData.username}
                           </span>
@@ -469,9 +500,9 @@ export const DashboardHeader = ({
 
       {/* Password Change Modal */}
       {isPasswordModalOpen && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-white/30 p-4">
-  <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-    <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-white/30 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">
                 Change Password
               </h3>
@@ -488,7 +519,10 @@ export const DashboardHeader = ({
               <div className="space-y-4">
                 {/* New Password Field */}
                 <div>
-                  <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="new-password"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     New Password
                   </label>
                   <div className="relative">
@@ -505,7 +539,11 @@ export const DashboardHeader = ({
                       onClick={() => setShowNewPassword(!showNewPassword)}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                     >
-                      {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {showNewPassword ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
                     </button>
                   </div>
                   {passwordErrors.length > 0 && (
@@ -519,7 +557,10 @@ export const DashboardHeader = ({
 
                 {/* Confirm Password Field */}
                 <div>
-                  <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="confirm-password"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Confirm Password
                   </label>
                   <div className="relative">
@@ -527,16 +568,24 @@ export const DashboardHeader = ({
                       type={showConfirmPassword ? "text" : "password"}
                       id="confirm-password"
                       value={confirmPassword}
-                      onChange={(e) => handleConfirmPasswordChange(e.target.value)}
+                      onChange={(e) =>
+                        handleConfirmPasswordChange(e.target.value)
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-10"
                       placeholder="Confirm new password"
                     />
                     <button
                       type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                     >
-                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {showConfirmPassword ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
                     </button>
                   </div>
                   {confirmPasswordError && (
@@ -557,7 +606,13 @@ export const DashboardHeader = ({
                 </button>
                 <button
                   type="submit"
-                  disabled={passwordErrors.length > 0 || confirmPasswordError !== "" || !newPassword || !confirmPassword || isChangingPassword}
+                  disabled={
+                    passwordErrors.length > 0 ||
+                    confirmPasswordError !== "" ||
+                    !newPassword ||
+                    !confirmPassword ||
+                    isChangingPassword
+                  }
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   {isChangingPassword ? "Changing..." : "Change Password"}

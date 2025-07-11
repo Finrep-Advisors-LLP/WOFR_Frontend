@@ -249,7 +249,9 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
       setNewUsers(usersData);
 
       console.log(setNewUsers);
-      setTotalUsers(totalCount);
+      const adjustedTotal = (page === 1 && !search) ? totalCount + 1 : totalCount;
+setTotalUsers(adjustedTotal);
+      // setTotalUsers(totalCount+1);
       // Initialize user status map
 
       const statusMap: Record<string, string> = {};
@@ -394,9 +396,11 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
   };
 
   // Calculate total pages
-  const totalPages = Math.max(1, Math.ceil(totalUsers / itemsPerPage));
-  const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
-
+  const adjustedTotal = (currentPage === 1 && superAdmin && !searchTerm) ? totalUsers : totalUsers - 1;
+const totalPages = Math.max(1, Math.ceil(adjustedTotal / itemsPerPage));
+  // const totalPages = Math.max(1, Math.ceil(totalUsers / itemsPerPage));
+const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
+const adjustedIndex = (currentPage === 1 && superAdmin && !searchTerm) ? indexOfFirstItem : indexOfFirstItem - 1;
   const usersToDisplay = currentPage === 1 && superAdmin && !searchTerm
     ? [superAdmin, ...newUsers]
     : newUsers;
@@ -474,26 +478,48 @@ const SuperUserManagement: React.FC<UserManagementProps> = ({
                           <td className="px-3 sm:px-4 py-3 sm:py-4 text-center text-sm font-medium text-gray-900">
                             {indexOfFirstItem + index + 1}
                           </td>
-                          <td
+                          {/* <td
                             className="px-3 sm:px-6 py-3 sm:py-4"
                             onClick={() => {
                               if (onUserSelect && user1.tenant_user_id) {
                                 onUserSelect(user1.tenant_user_id);
                               }
                             }}
-                          >
+                          > */}
+                          <td
+  className="px-3 sm:px-6 py-3 sm:py-4"
+  onClick={() => {
+    if (adminName === user1.name) {
+      return; // Add this check
+    }
+    if (onUserSelect && user1.tenant_user_id) {
+      onUserSelect(user1.tenant_user_id);
+    }
+  }}
+>
                             <div className="text-sm font-semibold text-gray-600 truncate">
                               {user1.name}
                             </div>
                           </td>
-                          <td
+                          {/* <td
                             className="px-3 sm:px-6 py-3 sm:py-4"
                             onClick={() => {
                               if (onUserSelect && user1.tenant_user_id) {
                                 onUserSelect(user1.tenant_user_id);
                               }
                             }}
-                          >
+                          > */}
+                          <td
+  className="px-3 sm:px-6 py-3 sm:py-4"
+  onClick={() => {
+    if (adminName === user1.name) {
+      return; // Add this check
+    }
+    if (onUserSelect && user1.tenant_user_id) {
+      onUserSelect(user1.tenant_user_id);
+    }
+  }}
+>
                             <div className="text-sm text-gray-600 break-all max-w-[150px] sm:max-w-xs">
                               {user1.email}
                             </div>

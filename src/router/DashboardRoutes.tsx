@@ -2,7 +2,7 @@
 
 import DashboardOverview from "../Pages/Sidebar/DashboardOverview";
 import {
-  BarChart3,
+  // BarChart3,
   BookKey,
   FileText,
   Hotel,
@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 
 import { JSX } from "react";
-import FinanceOverviewPage from "../Pages/Sidebar/FinanceOverviewPage";
+// import FinanceOverviewPage from "../Pages/Sidebar/FinanceOverviewPage";
 import OrganizationManager from "../Pages/SuperAdminPages/Organzation/OrganizationManager";
 import LeaseManagement from "../Pages/LeaseMangement/LeaseDashbaord";
 import UserListPage from "../Pages/MasterAdmin/Users/UserListPage";
@@ -210,12 +210,12 @@ export const DashboardRoutes: RouteItem[] = [
     element: <MasterRoleManagement />,
     allowedRoles: ["dev", "master_admin"],
   },
-  {
-    name: "Financial Dashboard",
-    path: "financial",
-    icon: <BarChart3 size={20} />,
-    element: <FinanceOverviewPage />,
-    allowedRoles: ["dev", "master_admin"],
-  },
+  // {
+  //   name: "Financial Dashboard",
+  //   path: "financial",
+  //   icon: <BarChart3 size={20} />,
+  //   element: <FinanceOverviewPage />,
+  //   allowedRoles: ["dev", "master_admin"],
+  // },
 ];
 
