@@ -209,13 +209,17 @@ const Login = () => {
               />
             </div>
             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl text-white font-bold text-center lg:text-left leading-tight">
-              Secure Your Financial
+              {/* Secure Your Financial */}
+              Automate. Analyze. Accelerate.
+              {/* Simplify Finance. Amplify Impact. */}
               <br />
-              Future Today
+              {/* Future Today */}
             </h1>
             <p className="text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl text-white leading-relaxed max-w-xl text-center lg:text-left">
-              Access your portfolio, track investments, and manage your wealth
-              with our advanced financial platform.
+              {/* Access your portfolio, track investments, and manage your wealth
+              with our advanced financial platform. */}
+              WOFR empowers you to automate financial calculations,
+               ensure regulatory compliance, and deliver accurate reporting — all in one platform.
             </p>
           </div>
 
@@ -455,7 +459,7 @@ const Login = () => {
                     to="/register"
                     className="text-teal-600 hover:text-teal-500 font-medium transition-colors"
                   >
-                    Sign up
+                    Register 
                   </Link>
                 </p>
 

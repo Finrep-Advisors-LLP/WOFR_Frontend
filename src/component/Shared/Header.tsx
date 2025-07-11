@@ -1,30 +1,30 @@
 import { useState } from "react";
-import { FaFacebook, FaInstagram, FaTwitter } from "react-icons/fa";
+// import { FaFacebook, FaInstagram, FaTwitter } from "react-icons/fa";
 import { RiMenu3Line, RiCloseLine } from "react-icons/ri";
 import { Link, NavLink } from "react-router-dom";
-import backgroundImages from "../../../public/background";
+// import backgroundImages from "../../../public/background";
 
-const openCalendly = () => {
-  window.Calendly?.initPopupWidget({
-    url: "https://calendly.com/maitriai-sales/business-meet",
-    prefill: {},
-    utm: {},
-    parentElement: undefined,
-    text: {
-      submitText: "Schedule Meeting",
-      headerText: "Book Your Demo Session",
-    },
-    color: {
-      primary: "#2C3E50",
-      secondary: "#3498DB",
-      background: "#F8F9FA",
-    },
-    pageSettings: {
-      height: 5500,
-    },
-  });
-  return false;
-};
+// const openCalendly = () => {
+//   window.Calendly?.initPopupWidget({
+//     url: "https://calendly.com/maitriai-sales/business-meet",
+//     prefill: {},
+//     utm: {},
+//     parentElement: undefined,
+//     text: {
+//       submitText: "Schedule Meeting",
+//       headerText: "Book Your Demo Session",
+//     },
+//     color: {
+//       primary: "#2C3E50",
+//       secondary: "#3498DB",
+//       background: "#F8F9FA",
+//     },
+//     pageSettings: {
+//       height: 5500,
+//     },
+//   });
+//   return false;
+// };
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -36,7 +36,7 @@ const Header = () => {
   return (
     <div className="w-full">
       {/* Logo and Social Links */}
-      <div className="bg-white p-2 flex items-center justify-between px-2 sm:px-4 lg:px-5">
+      {/* <div className="bg-white p-2 flex items-center justify-between px-2 sm:px-4 lg:px-5">
         <a href="/" rel="logo" className="flex-shrink-0">
           <img
             src={backgroundImages.companyLogo}
@@ -49,7 +49,7 @@ const Header = () => {
           <FaInstagram className="text-base xs:text-lg sm:text-xl" />
           <FaTwitter className="text-base xs:text-lg sm:text-xl" />
         </div>
-      </div>
+      </div> */}
 
       {/* Navigation */}
       <nav className="bg-[#0049AC] shadow-md relative">
@@ -60,14 +60,14 @@ const Header = () => {
               Home
             </Link>
             <Link
-              to="/explore-solutions"
+              to="https://worldoffinrep.com/about/"
               className="cursor-pointer hover:text-gray-300"
             >
               About Us
             </Link>
-            <li className="cursor-pointer hover:text-gray-300">Services</li>
+            {/* <li className="cursor-pointer hover:text-gray-300">Services</li>
             <li className="cursor-pointer hover:text-gray-300">Resources</li>
-            <li className="cursor-pointer hover:text-gray-300">Testimonials</li>
+            <li className="cursor-pointer hover:text-gray-300">Testimonials</li> */}
           </ul>
 
           {/* Mobile Menu Button */}
@@ -82,17 +82,18 @@ const Header = () => {
           <div className="space-x-1 xs:space-x-2 sm:space-x-3 lg:space-x-4 pr-1 xs:pr-2 sm:pr-4 md:pr-6 lg:pr-10 flex items-center">
             <Link to={"/login"}>
               <button className="text-white px-1 xs:px-2 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded text-xs xs:text-sm lg:text-base whitespace-nowrap">
-                Sign In
+                {/* Sign In */}
+                Login 
               </button>
             </Link>
-            <NavLink to="/book-demo">
+            {/* <NavLink to="/book-demo">
               <button
                 className="bg-[#008F98] text-white px-2 xs:px-3 sm:px-4 py-1 xs:py-1.5 sm:py-2 rounded cursor-pointer text-xs xs:text-sm lg:text-base whitespace-nowrap"
                 onClick={openCalendly}
               >
                 Book a Demo
               </button>
-            </NavLink>
+            </NavLink> */}
           </div>
         </div>
 
@@ -111,14 +112,14 @@ const Header = () => {
       </li>
       <li className="w-full">
         <Link
-          to="/explore-solutions"
+          to="https://worldoffinrep.com/about/"
           onClick={() => setIsMenuOpen(false)}
           className="block cursor-pointer hover:bg-[#003d90] px-4 sm:px-6 py-1.5 sm:py-2 text-center"
         >
           About Us
         </Link>
       </li>
-      <li
+      {/* <li
         className="cursor-pointer hover:bg-[#003d90] px-4 sm:px-6 py-1.5 sm:py-2 text-center"
         onClick={() => setIsMenuOpen(false)}
       >
@@ -135,7 +136,7 @@ const Header = () => {
         onClick={() => setIsMenuOpen(false)}
       >
         Testimonials
-      </li>
+      </li> */}
     </ul>
   </div>
 )}

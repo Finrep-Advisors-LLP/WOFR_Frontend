@@ -12,8 +12,6 @@ interface LeaseSummaryProps {
   readOnly?: boolean;
   disabled?: boolean;
 }
-
-
 const LeaseSummary: React.FC<LeaseSummaryProps> = ({
   onPrevious,
   onNext,

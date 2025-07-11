@@ -58,11 +58,11 @@ const SuperRoleManagement: React.FC = () => {
     <div className="p-4 lg:p-6 mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
+        <div className="flex flex-col sm:flex-row items-end justify-end gap-4">
+          {/* <div>
             <h1 className="text-2xl font-bold text-gray-900">Role Management</h1>
             <p className="text-gray-600">Manage roles and their module mappings</p>
-          </div>
+          </div> */}
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={() => setShowCreateRoleModal(true)}
